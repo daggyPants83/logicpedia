@@ -4,6 +4,7 @@ A collaborative tool for making chains of moral reasoning explicit, visible, and
 
 Built from a conversation about epistemics, cognitive dissonance, the USSR, pig farming, and whether LLMs are just sheep.
 
+
 ---
 
 ## What it does
