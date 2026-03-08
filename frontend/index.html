@@ -601,7 +601,7 @@ select option { background: var(--surface2); }
 <script>
 const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:8000'
-  : '/api'; // adjust for your deployment
+  : 'https://logicpedia-production.up.railway.app';
 
 let graphData = { nodes: [], edges: [] };
 let simulation, svg, g;

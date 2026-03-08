@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
@@ -26,7 +27,16 @@ def get_db():
     conn.execute("PRAGMA journal_mode=WAL")
     return conn
 
-def init_db():
+def init_db()
+
+# ── FRONTEND ──────────────────────────────────────────────────────────────────
+
+@app.get("/", response_class=HTMLResponse)
+def serve_frontend():
+    html_path = os.path.join(os.path.dirname(__file__), "index.html")
+    with open(html_path, "r") as f:
+        return f.read()
+:
     conn = get_db()
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS nodes (
