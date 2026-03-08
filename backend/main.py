@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import Optional, List
 import sqlite3
@@ -19,16 +19,6 @@ app.add_middleware(
 
 DB_PATH = os.environ.get("DB_PATH", "moral_graph.db")
 
-# ─── DB INIT ──────────────────────────────────────────────────────────────────
-
-def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    return conn
-
-def init_db()
-
 # ── FRONTEND ──────────────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
@@ -36,7 +26,16 @@ def serve_frontend():
     html_path = os.path.join(os.path.dirname(__file__), "index.html")
     with open(html_path, "r") as f:
         return f.read()
-:
+
+# ── DB INIT ───────────────────────────────────────────────────────────────────
+
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    return conn
+
+def init_db():
     conn = get_db()
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS nodes (
@@ -94,7 +93,7 @@ def serve_frontend():
 
 init_db()
 
-# ─── MODELS ───────────────────────────────────────────────────────────────────
+# ── MODELS ────────────────────────────────────────────────────────────────────
 
 class NodeCreate(BaseModel):
     statement: str
@@ -133,7 +132,7 @@ class EvidenceCreate(BaseModel):
     citation: Optional[str] = None
     created_by: str = "anonymous"
 
-# ─── HELPERS ──────────────────────────────────────────────────────────────────
+# ── HELPERS ───────────────────────────────────────────────────────────────────
 
 def row_to_dict(row):
     return dict(row) if row else None
@@ -144,7 +143,7 @@ def now():
 def new_id():
     return str(uuid.uuid4())
 
-# ─── NODES ────────────────────────────────────────────────────────────────────
+# ── NODES ─────────────────────────────────────────────────────────────────────
 
 @app.get("/nodes")
 def list_nodes():
@@ -186,7 +185,7 @@ def delete_node(node_id: str):
     conn.close()
     return {"deleted": True}
 
-# ─── EDGES ────────────────────────────────────────────────────────────────────
+# ── EDGES ─────────────────────────────────────────────────────────────────────
 
 @app.get("/edges")
 def list_edges():
@@ -197,7 +196,6 @@ def list_edges():
 
 @app.post("/edges")
 def create_edge(data: EdgeCreate):
-    # Validate nodes exist
     conn = get_db()
     a = conn.execute("SELECT id FROM nodes WHERE id=? AND is_deleted=0", (data.node_a_id,)).fetchone()
     b = conn.execute("SELECT id FROM nodes WHERE id=? AND is_deleted=0", (data.node_b_id,)).fetchone()
@@ -235,7 +233,7 @@ def delete_edge(edge_id: str):
     conn.close()
     return {"deleted": True}
 
-# ─── CHALLENGES ───────────────────────────────────────────────────────────────
+# ── CHALLENGES ────────────────────────────────────────────────────────────────
 
 @app.post("/challenges")
 def create_challenge(data: ChallengeCreate):
@@ -264,7 +262,7 @@ def resolve_challenge(challenge_id: str, data: ChallengeResolve):
     conn.close()
     return row_to_dict(row)
 
-# ─── EVIDENCE ─────────────────────────────────────────────────────────────────
+# ── EVIDENCE ──────────────────────────────────────────────────────────────────
 
 @app.post("/evidence")
 def create_evidence(data: EvidenceCreate):
@@ -280,14 +278,13 @@ def create_evidence(data: EvidenceCreate):
     conn.close()
     return row_to_dict(row)
 
-# ─── GRAPH (full export for visualisation) ────────────────────────────────────
+# ── GRAPH ─────────────────────────────────────────────────────────────────────
 
 @app.get("/graph")
 def get_graph():
     conn = get_db()
     nodes = [row_to_dict(r) for r in conn.execute("SELECT * FROM nodes WHERE is_deleted=0").fetchall()]
     edges = [row_to_dict(r) for r in conn.execute("SELECT * FROM edges WHERE is_deleted=0").fetchall()]
-    # attach challenge counts
     for n in nodes:
         count = conn.execute("SELECT COUNT(*) FROM challenges WHERE target_id=? AND status='OPEN'", (n["id"],)).fetchone()[0]
         n["open_challenges"] = count
@@ -297,11 +294,10 @@ def get_graph():
     conn.close()
     return {"nodes": nodes, "edges": edges}
 
-# ─── SEED DATA ────────────────────────────────────────────────────────────────
+# ── SEED ──────────────────────────────────────────────────────────────────────
 
 @app.post("/seed")
 def seed():
-    """Seed the database with the pig suffering example chain from our conversation."""
     conn = get_db()
     existing = conn.execute("SELECT COUNT(*) FROM nodes").fetchone()[0]
     if existing > 0:
@@ -322,18 +318,12 @@ def seed():
 
     ids = [n[0] for n in nodes]
     edges = [
-        (new_id(), ids[0], ids[2], "SUPPORTS", "DIRECTED", 0.8,
-         "Neurological capacity for pain is the biological basis for pain experience", None, "seed", t),
-        (new_id(), ids[1], ids[2], "LOGICALLY_IMPLIES", "DIRECTED", 0.75,
-         "Behavioural evidence of distress in animals with pain-capable nervous systems implies subjective experience", None, "seed", t),
-        (new_id(), ids[2], ids[4], "PREREQUISITE_FOR", "DIRECTED", 0.9,
-         "Suffering requires a subject capable of suffering; established capacity is required before scale claim", None, "seed", t),
-        (new_id(), ids[3], ids[4], "CAUSES", "DIRECTED", 0.85,
-         "Documented factory farming conditions directly produce the distress behaviours established as suffering indicators", None, "seed", t),
-        (new_id(), ids[4], ids[6], "LOGICALLY_IMPLIES", "DIRECTED", 0.8,
-         "If suffering occurs at scale and suffering is wrong, the practice producing it is unjustifiable", None, "seed", t),
-        (new_id(), ids[5], ids[6], "PREREQUISITE_FOR", "DIRECTED", 1.0,
-         "The value assertion that suffering is wrong is required for the moral conclusion to follow", None, "seed", t),
+        (new_id(), ids[0], ids[2], "SUPPORTS", "DIRECTED", 0.8, "Neurological capacity for pain is the biological basis for pain experience", None, "seed", t),
+        (new_id(), ids[1], ids[2], "LOGICALLY_IMPLIES", "DIRECTED", 0.75, "Behavioural evidence of distress in animals with pain-capable nervous systems implies subjective experience", None, "seed", t),
+        (new_id(), ids[2], ids[4], "PREREQUISITE_FOR", "DIRECTED", 0.9, "Suffering requires a subject capable of suffering", None, "seed", t),
+        (new_id(), ids[3], ids[4], "CAUSES", "DIRECTED", 0.85, "Documented factory farming conditions directly produce the distress behaviours established as suffering indicators", None, "seed", t),
+        (new_id(), ids[4], ids[6], "LOGICALLY_IMPLIES", "DIRECTED", 0.8, "If suffering occurs at scale and suffering is wrong, the practice producing it is unjustifiable", None, "seed", t),
+        (new_id(), ids[5], ids[6], "PREREQUISITE_FOR", "DIRECTED", 1.0, "The value assertion that suffering is wrong is required for the moral conclusion to follow", None, "seed", t),
     ]
     conn.executemany("INSERT INTO edges VALUES (?,?,?,?,?,?,?,?,?,?,0)", edges)
     conn.commit()
