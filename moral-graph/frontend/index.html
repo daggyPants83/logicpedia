@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moral Reasoning Graph</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Bebas+Neue&display=swap');
+
+:root {
+  --bg: #08080f;
+  --surface: #0f0f1a;
+  --surface2: #14141f;
+  --border: #1c1c2e;
+  --border2: #252538;
+  --empirical: #00d4ff;
+  --logical: #a8ff3e;
+  --value: #ff6b35;
+  --pattern: #c678dd;
+  --text: #dde0f0;
+  --muted: #484868;
+  --muted2: #6060a0;
+  --causes: #ff6b35;
+  --contradicts: #ff3366;
+  --implies: #a8ff3e;
+  --supports: #00d4ff;
+  --undermines: #ff9900;
+  --prereq: #c678dd;
+  --correlates: #88aaff;
+  --panel: 340px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── HEADER ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 52px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem;
+  letter-spacing: 0.12em;
+  color: var(--empirical);
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── LAYOUT ── */
+.app {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── GRAPH CANVAS ── */
+#graph-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+#graph-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── SIDE PANEL ── */
+.panel {
+  width: var(--panel);
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.panel-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  flex: 1;
+  padding: 12px 8px;
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  text-align: center;
+  cursor: pointer;
+  color: var(--muted2);
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+
+.tab.active {
+  color: var(--empirical);
+  border-bottom-color: var(--empirical);
+}
+
+.tab-content {
+  display: none;
+  flex: 1;
+  overflow-y: auto;
+  flex-direction: column;
+}
+
+.tab-content.active { display: flex; }
+
+/* ── FORMS ── */
+.form-section {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.form-title {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--muted2);
+  margin-bottom: 12px;
+}
+
+label {
+  display: block;
+  font-size: 0.62rem;
+  color: var(--muted2);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+input, textarea, select {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--empirical);
+}
+
+textarea { resize: vertical; min-height: 70px; }
+
+select option { background: var(--surface2); }
+
+/* ── BUTTONS ── */
+.btn {
+  padding: 8px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-primary {
+  background: var(--empirical);
+  border-color: var(--empirical);
+  color: var(--bg);
+  width: 100%;
+}
+
+.btn-primary:hover { opacity: 0.85; }
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 0.58rem;
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--border2);
+  color: var(--muted2);
+}
+
+.btn-ghost:hover { border-color: var(--empirical); color: var(--empirical); }
+
+.btn-danger {
+  background: transparent;
+  border-color: #ff3366;
+  color: #ff3366;
+}
+
+.btn-challenge {
+  background: transparent;
+  border-color: var(--value);
+  color: var(--value);
+}
+
+/* ── DETAIL PANEL ── */
+.detail-panel {
+  padding: 16px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.detail-title {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--muted2);
+  margin-bottom: 4px;
+}
+
+.detail-statement {
+  font-size: 0.8rem;
+  line-height: 1.6;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--surface2);
+  border-left: 3px solid var(--empirical);
+}
+
+.detail-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  margin-right: 6px;
+  margin-bottom: 8px;
+}
+
+.badge-empirical { background: #001a22; color: var(--empirical); border: 1px solid var(--empirical); }
+.badge-logical { background: #111a08; color: var(--logical); border: 1px solid var(--logical); }
+.badge-value { background: #1a0f08; color: var(--value); border: 1px solid var(--value); }
+.badge-pattern { background: #150a1a; color: var(--pattern); border: 1px solid var(--pattern); }
+.badge-established { background: #001a22; color: var(--empirical); border: 1px solid var(--empirical); }
+.badge-supported { background: #111a08; color: var(--logical); border: 1px solid var(--logical); }
+.badge-contested { background: #1a0f08; color: var(--value); border: 1px solid var(--value); }
+.badge-speculative { background: #150a1a; color: var(--pattern); border: 1px solid var(--pattern); }
+
+.section-header {
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--muted2);
+  padding: 8px 0 6px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.challenge-item, .evidence-item {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  padding: 10px;
+  margin-bottom: 8px;
+  font-size: 0.68rem;
+}
+
+.challenge-ground {
+  font-size: 0.56rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--value);
+  margin-bottom: 4px;
+}
+
+.challenge-status-open { color: var(--value); }
+.challenge-status-resolved_upheld { color: var(--logical); }
+.challenge-status-resolved_rejected { color: var(--muted2); }
+
+.challenge-arg { line-height: 1.5; color: var(--text); margin: 6px 0; }
+.challenge-by { color: var(--muted); font-size: 0.6rem; }
+
+.evidence-source { color: var(--pattern); font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+.evidence-desc { line-height: 1.5; }
+
+/* ── NODE LIST ── */
+.node-list-item {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.node-list-item:hover { background: var(--surface2); }
+
+.node-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.node-list-statement {
+  font-size: 0.7rem;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.node-list-meta {
+  font-size: 0.58rem;
+  color: var(--muted2);
+  margin-top: 2px;
+}
+
+/* ── LEGEND ── */
+.legend {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.58rem;
+  color: var(--muted2);
+}
+
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.legend-line { width: 20px; height: 2px; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  padding: 10px 20px;
+  font-size: 0.7rem;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.toast.show { opacity: 1; }
+
+/* ── GRAPH ELEMENTS ── */
+.node-circle {
+  stroke-width: 2;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.node-circle:hover { filter: brightness(1.3); }
+.node-circle.selected { stroke-width: 3; filter: brightness(1.4); }
+
+.node-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  fill: var(--text);
+  pointer-events: none;
+  text-anchor: middle;
+}
+
+.edge-line {
+  stroke-opacity: 0.6;
+  cursor: pointer;
+}
+
+.edge-line:hover { stroke-opacity: 1; }
+.edge-line.selected { stroke-opacity: 1; stroke-width: 3 !important; }
+
+.edge-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  fill: var(--muted2);
+  pointer-events: none;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--border2); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  width: 480px;
+  max-width: 95vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.modal-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.2rem;
+  letter-spacing: 0.1em;
+  color: var(--value);
+  margin-bottom: 16px;
+}
+
+.modal-close {
+  float: right;
+  background: none;
+  border: none;
+  color: var(--muted2);
+  font-size: 1.2rem;
+  cursor: pointer;
+  line-height: 1;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">Moral Reasoning Graph</span>
+  <div class="header-actions">
+    <button class="btn btn-ghost btn-sm" onclick="seedData()">Load Example</button>
+    <button class="btn btn-ghost btn-sm" onclick="loadGraph()">↻ Refresh</button>
+  </div>
+</header>
+
+<div class="app">
+  <div id="graph-container">
+    <svg id="graph-svg"></svg>
+  </div>
+
+  <div class="panel">
+    <div class="panel-tabs">
+      <div class="tab active" onclick="switchTab('add')">Add</div>
+      <div class="tab" onclick="switchTab('nodes')">Nodes</div>
+      <div class="tab" onclick="switchTab('detail')">Detail</div>
+    </div>
+
+    <!-- ADD TAB -->
+    <div class="tab-content active" id="tab-add">
+      <div class="form-section">
+        <div class="form-title">New Node</div>
+        <label>Statement</label>
+        <textarea id="n-statement" placeholder="A factual claim, logical conclusion, or value assertion..."></textarea>
+        <label>Type</label>
+        <select id="n-type">
+          <option value="EMPIRICAL_FACT">Empirical Fact</option>
+          <option value="LOGICAL_CONCLUSION">Logical Conclusion</option>
+          <option value="VALUE_ASSERTION">Value Assertion</option>
+          <option value="OBSERVED_PATTERN">Observed Pattern</option>
+        </select>
+        <label>Confidence</label>
+        <select id="n-confidence">
+          <option value="ESTABLISHED">Established</option>
+          <option value="SUPPORTED">Supported</option>
+          <option value="CONTESTED">Contested</option>
+          <option value="SPECULATIVE">Speculative</option>
+        </select>
+        <label>Your name</label>
+        <input id="n-author" type="text" placeholder="anonymous">
+        <button class="btn btn-primary" onclick="createNode()">Add Node</button>
+      </div>
+
+      <div class="form-section">
+        <div class="form-title">New Connection</div>
+        <label>From Node ID</label>
+        <input id="e-from" type="text" placeholder="Click a node to fill...">
+        <label>To Node ID</label>
+        <input id="e-to" type="text" placeholder="Then shift-click another...">
+        <label>Relationship</label>
+        <select id="e-rel">
+          <option value="CAUSES">Causes</option>
+          <option value="LOGICALLY_IMPLIES">Logically Implies</option>
+          <option value="SUPPORTS">Supports</option>
+          <option value="CONTRADICTS">Contradicts</option>
+          <option value="UNDERMINES">Undermines</option>
+          <option value="PREREQUISITE_FOR">Prerequisite For</option>
+          <option value="CORRELATES_WITH">Correlates With</option>
+        </select>
+        <label>Warrant (required — why does this connection hold?)</label>
+        <textarea id="e-warrant" placeholder="State explicitly why this connection holds..."></textarea>
+        <label>Strength (0–1)</label>
+        <input id="e-strength" type="number" min="0" max="1" step="0.05" value="0.7">
+        <label>Your name</label>
+        <input id="e-author" type="text" placeholder="anonymous">
+        <button class="btn btn-primary" onclick="createEdge()">Add Connection</button>
+      </div>
+
+      <div class="legend">
+        <div style="width:100%; font-size:0.58rem; color:var(--muted2); text-transform:uppercase; letter-spacing:0.15em; margin-bottom:4px;">Node Types</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--empirical)"></div>Empirical</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--logical)"></div>Logical</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--value)"></div>Value</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--pattern)"></div>Pattern</div>
+      </div>
+    </div>
+
+    <!-- NODES TAB -->
+    <div class="tab-content" id="tab-nodes">
+      <div id="node-list"></div>
+    </div>
+
+    <!-- DETAIL TAB -->
+    <div class="tab-content" id="tab-detail">
+      <div class="detail-panel" id="detail-content">
+        <div style="color:var(--muted); font-size:0.7rem; padding:20px 0;">
+          Click a node or connection to see details, evidence, and challenges.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Challenge Modal -->
+<div class="modal-overlay" id="challenge-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">Raise a Challenge</div>
+    <label>What property are you disputing?</label>
+    <input id="c-property" type="text" placeholder="e.g. statement, warrant, confidence...">
+    <label>Ground of challenge</label>
+    <select id="c-ground">
+      <option value="EMPIRICAL">Empirical — disputing a factual claim</option>
+      <option value="LOGICAL">Logical — disputing the reasoning</option>
+      <option value="VALUE">Value — disputing a normative claim</option>
+      <option value="SCOPE">Scope — disputing applicability</option>
+    </select>
+    <label>Your argument</label>
+    <textarea id="c-argument" placeholder="State your challenge clearly and specifically..."></textarea>
+    <label>Your name</label>
+    <input id="c-author" type="text" placeholder="anonymous">
+    <button class="btn btn-primary" style="border-color:var(--value);background:var(--value);" onclick="submitChallenge()">Submit Challenge</button>
+  </div>
+</div>
+
+<!-- Evidence Modal -->
+<div class="modal-overlay" id="evidence-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title" style="color:var(--pattern)">Add Evidence</div>
+    <label>Source type</label>
+    <select id="ev-source">
+      <option value="PEER_REVIEWED">Peer Reviewed</option>
+      <option value="OBSERVATIONAL">Observational</option>
+      <option value="EXPERT_CONSENSUS">Expert Consensus</option>
+      <option value="LOGICAL_DERIVATION">Logical Derivation</option>
+      <option value="ANECDOTAL">Anecdotal</option>
+    </select>
+    <label>Description</label>
+    <textarea id="ev-description" placeholder="Describe the evidence..."></textarea>
+    <label>URL (optional)</label>
+    <input id="ev-url" type="text" placeholder="https://...">
+    <label>Citation (optional)</label>
+    <input id="ev-citation" type="text" placeholder="Author, Year, Journal...">
+    <label>Your name</label>
+    <input id="ev-author" type="text" placeholder="anonymous">
+    <button class="btn btn-primary" style="border-color:var(--pattern);background:var(--pattern);" onclick="submitEvidence()">Add Evidence</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:8000'
+  : '/api'; // adjust for your deployment
+
+let graphData = { nodes: [], edges: [] };
+let simulation, svg, g;
+let selectedNode = null;
+let pendingEdgeFrom = null;
+let currentTarget = null; // for modals
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const names = ['add','nodes','detail'];
+    t.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── COLOUR HELPERS ────────────────────────────────────────────────────────────
+const NODE_COLORS = {
+  EMPIRICAL_FACT: '#00d4ff',
+  LOGICAL_CONCLUSION: '#a8ff3e',
+  VALUE_ASSERTION: '#ff6b35',
+  OBSERVED_PATTERN: '#c678dd',
+};
+
+const EDGE_COLORS = {
+  CAUSES: '#ff6b35',
+  CONTRADICTS: '#ff3366',
+  LOGICALLY_IMPLIES: '#a8ff3e',
+  SUPPORTS: '#00d4ff',
+  UNDERMINES: '#ff9900',
+  PREREQUISITE_FOR: '#c678dd',
+  CORRELATES_WITH: '#88aaff',
+};
+
+function nodeColor(type) { return NODE_COLORS[type] || '#888'; }
+function edgeColor(rel) { return EDGE_COLORS[rel] || '#555'; }
+
+function badgeClass(val) {
+  return 'badge-' + (val || '').toLowerCase().replace('_','');
+}
+
+// ── API CALLS ─────────────────────────────────────────────────────────────────
+async function api(path, method='GET', body=null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || res.statusText);
+  }
+  return res.json();
+}
+
+// ── LOAD GRAPH ────────────────────────────────────────────────────────────────
+async function loadGraph() {
+  try {
+    graphData = await api('/graph');
+    renderGraph();
+    renderNodeList();
+  } catch(e) {
+    toast('Cannot reach API — is the backend running? ' + e.message);
+  }
+}
+
+async function seedData() {
+  try {
+    const r = await api('/seed', 'POST');
+    toast(r.message);
+    loadGraph();
+  } catch(e) {
+    toast(e.message);
+  }
+}
+
+// ── CREATE NODE ───────────────────────────────────────────────────────────────
+async function createNode() {
+  const stmt = document.getElementById('n-statement').value.trim();
+  if (!stmt) { toast('Statement is required'); return; }
+  try {
+    await api('/nodes', 'POST', {
+      statement: stmt,
+      type: document.getElementById('n-type').value,
+      confidence: document.getElementById('n-confidence').value,
+      created_by: document.getElementById('n-author').value || 'anonymous',
+    });
+    document.getElementById('n-statement').value = '';
+    toast('Node added');
+    loadGraph();
+  } catch(e) { toast(e.message); }
+}
+
+// ── CREATE EDGE ───────────────────────────────────────────────────────────────
+async function createEdge() {
+  const from = document.getElementById('e-from').value.trim();
+  const to = document.getElementById('e-to').value.trim();
+  const warrant = document.getElementById('e-warrant').value.trim();
+  if (!from || !to) { toast('Select two nodes first'); return; }
+  if (!warrant) { toast('Warrant is required — why does this connection hold?'); return; }
+  try {
+    await api('/edges', 'POST', {
+      node_a_id: from,
+      node_b_id: to,
+      relationship: document.getElementById('e-rel').value,
+      strength: parseFloat(document.getElementById('e-strength').value),
+      warrant,
+      created_by: document.getElementById('e-author').value || 'anonymous',
+    });
+    document.getElementById('e-from').value = '';
+    document.getElementById('e-to').value = '';
+    document.getElementById('e-warrant').value = '';
+    pendingEdgeFrom = null;
+    toast('Connection added');
+    loadGraph();
+  } catch(e) { toast(e.message); }
+}
+
+// ── NODE LIST ─────────────────────────────────────────────────────────────────
+function renderNodeList() {
+  const list = document.getElementById('node-list');
+  list.innerHTML = graphData.nodes.map(n => `
+    <div class="node-list-item" onclick="showNodeDetail('${n.id}')">
+      <div class="node-dot" style="background:${nodeColor(n.type)}"></div>
+      <div>
+        <div class="node-list-statement">${truncate(n.statement, 80)}</div>
+        <div class="node-list-meta">${n.type.replace('_',' ')} · ${n.confidence}${n.open_challenges > 0 ? ` · ⚠ ${n.open_challenges} challenge(s)` : ''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function truncate(s, n) {
+  return s.length > n ? s.slice(0, n) + '…' : s;
+}
+
+// ── DETAIL ────────────────────────────────────────────────────────────────────
+async function showNodeDetail(id) {
+  switchTab('detail');
+  try {
+    const n = await api('/nodes/' + id);
+    currentTarget = { id, type: 'NODE' };
+    document.getElementById('detail-content').innerHTML = `
+      <div class="detail-title">Node</div>
+      <div class="detail-statement">${n.statement}</div>
+      <span class="detail-badge ${badgeClass(n.type)}">${n.type.replace(/_/g,' ')}</span>
+      <span class="detail-badge ${badgeClass(n.confidence)}">${n.confidence}</span>
+      <div style="font-size:0.6rem;color:var(--muted2);margin-bottom:12px;">by ${n.created_by} · ${n.created_at.slice(0,10)}</div>
+
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="btn btn-challenge btn-sm" onclick="openModal('challenge-modal')">⚠ Challenge</button>
+        <button class="btn btn-ghost btn-sm" onclick="openModal('evidence-modal')">+ Evidence</button>
+      </div>
+
+      <div class="section-header">Evidence (${n.evidence.length})</div>
+      ${n.evidence.map(e => `
+        <div class="evidence-item">
+          <div class="evidence-source">${e.source_type.replace(/_/g,' ')}</div>
+          <div class="evidence-desc">${e.description}</div>
+          ${e.url ? `<a href="${e.url}" target="_blank" style="color:var(--empirical);font-size:0.62rem;">↗ source</a>` : ''}
+        </div>
+      `).join('') || '<div style="color:var(--muted);font-size:0.68rem;padding:8px 0;">No evidence yet</div>'}
+
+      <div class="section-header">Challenges (${n.challenges.length})</div>
+      ${n.challenges.map(c => `
+        <div class="challenge-item">
+          <div class="challenge-ground">${c.ground} · disputing: ${c.property_disputed}</div>
+          <div class="challenge-arg">${c.argument}</div>
+          <div class="challenge-by">by ${c.created_by} · <span class="challenge-status-${c.status.toLowerCase()}">${c.status.replace(/_/g,' ')}</span></div>
+        </div>
+      `).join('') || '<div style="color:var(--muted);font-size:0.68rem;padding:8px 0;">No challenges yet</div>'}
+    `;
+  } catch(e) { toast(e.message); }
+}
+
+async function showEdgeDetail(id) {
+  switchTab('detail');
+  try {
+    const e = await api('/edges/' + id);
+    currentTarget = { id, type: 'EDGE' };
+    const fromNode = graphData.nodes.find(n => n.id === e.node_a_id);
+    const toNode = graphData.nodes.find(n => n.id === e.node_b_id);
+    document.getElementById('detail-content').innerHTML = `
+      <div class="detail-title">Connection</div>
+      <div style="font-size:0.7rem;color:var(--muted2);margin-bottom:8px;">
+        <span style="color:${nodeColor(fromNode?.type)}">${truncate(fromNode?.statement || '?', 40)}</span>
+        <span style="color:${edgeColor(e.relationship)};margin:0 8px;">→ ${e.relationship.replace(/_/g,' ')} →</span>
+        <span style="color:${nodeColor(toNode?.type)}">${truncate(toNode?.statement || '?', 40)}</span>
+      </div>
+
+      <div class="detail-title" style="margin-top:12px;">Warrant</div>
+      <div class="detail-statement" style="border-left-color:${edgeColor(e.relationship)}">${e.warrant}</div>
+      <div style="font-size:0.62rem;color:var(--muted2);margin-bottom:4px;">Strength: ${Math.round(e.strength * 100)}%</div>
+      ${e.conditions ? `<div style="font-size:0.62rem;color:var(--muted2);margin-bottom:12px;">Conditions: ${e.conditions}</div>` : ''}
+      <div style="font-size:0.6rem;color:var(--muted2);margin-bottom:16px;">by ${e.created_by} · ${e.created_at.slice(0,10)}</div>
+
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="btn btn-challenge btn-sm" onclick="openModal('challenge-modal')">⚠ Challenge Warrant</button>
+        <button class="btn btn-ghost btn-sm" onclick="openModal('evidence-modal')">+ Evidence</button>
+      </div>
+
+      <div class="section-header">Evidence (${e.evidence.length})</div>
+      ${e.evidence.map(ev => `
+        <div class="evidence-item">
+          <div class="evidence-source">${ev.source_type.replace(/_/g,' ')}</div>
+          <div class="evidence-desc">${ev.description}</div>
+        </div>
+      `).join('') || '<div style="color:var(--muted);font-size:0.68rem;padding:8px 0;">No evidence yet</div>'}
+
+      <div class="section-header">Challenges (${e.challenges.length})</div>
+      ${e.challenges.map(c => `
+        <div class="challenge-item">
+          <div class="challenge-ground">${c.ground} · ${c.property_disputed}</div>
+          <div class="challenge-arg">${c.argument}</div>
+          <div class="challenge-by">by ${c.created_by} · <span class="challenge-status-${c.status.toLowerCase()}">${c.status.replace(/_/g,' ')}</span></div>
+        </div>
+      `).join('') || '<div style="color:var(--muted);font-size:0.68rem;padding:8px 0;">No challenges yet</div>'}
+    `;
+  } catch(e) { toast(e.message); }
+}
+
+// ── MODALS ────────────────────────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open')); }
+
+async function submitChallenge() {
+  if (!currentTarget) return;
+  const prop = document.getElementById('c-property').value.trim();
+  const arg = document.getElementById('c-argument').value.trim();
+  if (!prop || !arg) { toast('Property and argument are required'); return; }
+  try {
+    await api('/challenges', 'POST', {
+      target_id: currentTarget.id,
+      target_type: currentTarget.type,
+      ground: document.getElementById('c-ground').value,
+      property_disputed: prop,
+      argument: arg,
+      created_by: document.getElementById('c-author').value || 'anonymous',
+    });
+    closeModal();
+    toast('Challenge submitted');
+    if (currentTarget.type === 'NODE') showNodeDetail(currentTarget.id);
+    else showEdgeDetail(currentTarget.id);
+  } catch(e) { toast(e.message); }
+}
+
+async function submitEvidence() {
+  if (!currentTarget) return;
+  const desc = document.getElementById('ev-description').value.trim();
+  if (!desc) { toast('Description is required'); return; }
+  try {
+    await api('/evidence', 'POST', {
+      target_id: currentTarget.id,
+      target_type: currentTarget.type,
+      source_type: document.getElementById('ev-source').value,
+      description: desc,
+      url: document.getElementById('ev-url').value || null,
+      citation: document.getElementById('ev-citation').value || null,
+      created_by: document.getElementById('ev-author').value || 'anonymous',
+    });
+    closeModal();
+    toast('Evidence added');
+    if (currentTarget.type === 'NODE') showNodeDetail(currentTarget.id);
+    else showEdgeDetail(currentTarget.id);
+  } catch(e) { toast(e.message); }
+}
+
+// ── GRAPH RENDERING ───────────────────────────────────────────────────────────
+function renderGraph() {
+  const container = document.getElementById('graph-container');
+  const W = container.clientWidth;
+  const H = container.clientHeight;
+
+  d3.select('#graph-svg').selectAll('*').remove();
+
+  svg = d3.select('#graph-svg')
+    .attr('width', W)
+    .attr('height', H);
+
+  // Arrow markers
+  const defs = svg.append('defs');
+  Object.entries(EDGE_COLORS).forEach(([rel, color]) => {
+    defs.append('marker')
+      .attr('id', 'arrow-' + rel)
+      .attr('viewBox', '0 -5 10 10')
+      .attr('refX', 22)
+      .attr('refY', 0)
+      .attr('markerWidth', 6)
+      .attr('markerHeight', 6)
+      .attr('orient', 'auto')
+      .append('path')
+      .attr('d', 'M0,-5L10,0L0,5')
+      .attr('fill', color)
+      .attr('opacity', 0.7);
+  });
+
+  g = svg.append('g');
+
+  // Zoom
+  const zoom = d3.zoom()
+    .scaleExtent([0.2, 4])
+    .on('zoom', e => g.attr('transform', e.transform));
+  svg.call(zoom);
+
+  // Build simulation data
+  const nodes = graphData.nodes.map(n => ({ ...n }));
+  const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]));
+  const edges = graphData.edges
+    .filter(e => nodeMap[e.node_a_id] && nodeMap[e.node_b_id])
+    .map(e => ({ ...e, source: nodeMap[e.node_a_id], target: nodeMap[e.node_b_id] }));
+
+  simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(edges).id(d => d.id).distance(160))
+    .force('charge', d3.forceManyBody().strength(-400))
+    .force('center', d3.forceCenter(W / 2, H / 2))
+    .force('collision', d3.forceCollide(30));
+
+  // Edges
+  const edgeLines = g.append('g').selectAll('line')
+    .data(edges)
+    .enter().append('line')
+    .attr('class', 'edge-line')
+    .attr('stroke', d => edgeColor(d.relationship))
+    .attr('stroke-width', d => 1 + d.strength * 2)
+    .attr('marker-end', d => `url(#arrow-${d.relationship})`)
+    .on('click', (event, d) => {
+      event.stopPropagation();
+      edgeLines.classed('selected', false);
+      d3.select(event.currentTarget).classed('selected', true);
+      showEdgeDetail(d.id);
+    });
+
+  // Edge labels
+  const edgeLabels = g.append('g').selectAll('text')
+    .data(edges)
+    .enter().append('text')
+    .attr('class', 'edge-label')
+    .attr('fill', d => edgeColor(d.relationship))
+    .attr('opacity', 0.7)
+    .text(d => d.relationship.replace(/_/g,' '));
+
+  // Nodes
+  const nodeGroups = g.append('g').selectAll('g')
+    .data(nodes)
+    .enter().append('g')
+    .call(d3.drag()
+      .on('start', (event, d) => { if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+      .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
+      .on('end', (event, d) => { if (!event.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; })
+    )
+    .on('click', (event, d) => {
+      if (event.shiftKey) {
+        // Second click in edge-creation mode
+        const fromId = document.getElementById('e-from').value.trim();
+        if (fromId && fromId !== d.id) {
+          document.getElementById('e-to').value = d.id;
+          switchTab('add');
+          toast('Now fill in the warrant and click Add Connection');
+        }
+        return;
+      }
+      // Select for edge-from
+      document.getElementById('e-from').value = d.id;
+      document.getElementById('e-to').value = '';
+      // Show detail
+      nodeGroups.selectAll('circle').classed('selected', false);
+      d3.select(event.currentTarget).select('circle').classed('selected', true);
+      showNodeDetail(d.id);
+      toast('Shift+click another node to connect');
+    });
+
+  nodeGroups.append('circle')
+    .attr('class', 'node-circle')
+    .attr('r', d => 14 + Math.min(d.open_challenges * 3, 10))
+    .attr('fill', d => nodeColor(d.type) + '22')
+    .attr('stroke', d => nodeColor(d.type));
+
+  // Challenge indicator
+  nodeGroups.filter(d => d.open_challenges > 0)
+    .append('circle')
+    .attr('r', 5)
+    .attr('cx', 12)
+    .attr('cy', -12)
+    .attr('fill', '#ff6b35');
+
+  nodeGroups.append('text')
+    .attr('class', 'node-label')
+    .attr('dy', '0.35em')
+    .text(d => truncate(d.statement, 20));
+
+  simulation.on('tick', () => {
+    edgeLines
+      .attr('x1', d => d.source.x)
+      .attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x)
+      .attr('y2', d => d.target.y);
+
+    edgeLabels
+      .attr('x', d => (d.source.x + d.target.x) / 2)
+      .attr('y', d => (d.source.y + d.target.y) / 2);
+
+    nodeGroups.attr('transform', d => `translate(${d.x},${d.y})`);
+  });
+
+  // Background click to deselect
+  svg.on('click', () => {
+    nodeGroups.selectAll('circle').classed('selected', false);
+    edgeLines.classed('selected', false);
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  if (graphData.nodes.length > 0) renderGraph();
+});
+
+loadGraph();
+</script>
+</body>
+</html>
