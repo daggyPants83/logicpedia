@@ -27,7 +27,7 @@ def get_db():
     conn.execute("PRAGMA journal_mode=WAL")
     return conn
 
-def init_db()
+def init_db():
 
 # ── FRONTEND ──────────────────────────────────────────────────────────────────
 
