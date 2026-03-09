@@ -3,1029 +3,1499 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Moral Reasoning Graph</title>
+<title>Logicpedia</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Bebas+Neue&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
 
-:root {
-  --bg: #08080f;
-  --surface: #0f0f1a;
-  --surface2: #14141f;
-  --border: #1c1c2e;
-  --border2: #252538;
-  --empirical: #00d4ff;
-  --logical: #a8ff3e;
-  --value: #ff6b35;
-  --pattern: #c678dd;
-  --text: #dde0f0;
-  --muted: #484868;
-  --muted2: #6060a0;
-  --causes: #ff6b35;
-  --contradicts: #ff3366;
-  --implies: #a8ff3e;
-  --supports: #00d4ff;
-  --undermines: #ff9900;
-  --prereq: #c678dd;
-  --correlates: #88aaff;
-  --panel: 340px;
-}
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --text: #d4d4e8;
+    --text-dim: #6b6b8a;
+    --accent: #7b7bff;
+    --accent2: #ff7b7b;
+    --accent3: #7bffb0;
+    --gold: #ffd97b;
+    --focus-color: #7b7bff;
+    --pin-color: #ffd97b;
+    --path-color: #7bffb0;
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+    --node-empirical: #4a9eff;
+    --node-logical: #b47bff;
+    --node-value: #ff7b7b;
+    --node-definitional: #7bffb0;
+    --node-observed: #ffb07b;
+  }
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
-  height: 100vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ── HEADER ── */
-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  height: 52px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  flex-shrink: 0;
-  z-index: 10;
-}
+  body {
+    font-family: 'IBM Plex Sans', monospace;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
 
-.logo {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.4rem;
-  letter-spacing: 0.12em;
-  color: var(--empirical);
-}
+  /* ── HEADER ── */
+  #header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+    z-index: 100;
+  }
 
-.header-actions {
-  display: flex;
-  gap: 8px;
-}
+  #logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
 
-/* ── LAYOUT ── */
-.app {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
+  #header-stats {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-left: 8px;
+  }
 
-/* ── GRAPH CANVAS ── */
-#graph-container {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-}
+  .header-spacer { flex: 1; }
 
-#graph-svg {
-  width: 100%;
-  height: 100%;
-}
+  .header-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.05em;
+  }
+  .header-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .header-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(123,123,255,0.1); }
 
-/* ── SIDE PANEL ── */
-.panel {
-  width: var(--panel);
-  background: var(--surface);
-  border-left: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  flex-shrink: 0;
-}
+  /* ── LAYOUT ── */
+  #main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
 
-.panel-tabs {
-  display: flex;
-  border-bottom: 1px solid var(--border);
-}
+  /* ── LEFT PANEL ── */
+  #left-panel {
+    width: 300px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
 
-.tab {
-  flex: 1;
-  padding: 12px 8px;
-  font-size: 0.6rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  text-align: center;
-  cursor: pointer;
-  color: var(--muted2);
-  border-bottom: 2px solid transparent;
-  transition: all 0.15s;
-}
+  .panel-section {
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
 
-.tab.active {
-  color: var(--empirical);
-  border-bottom-color: var(--empirical);
-}
+  .panel-header {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 10px 14px 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 
-.tab-content {
-  display: none;
-  flex: 1;
-  overflow-y: auto;
-  flex-direction: column;
-}
+  .panel-header span { flex: 1; }
 
-.tab-content.active { display: flex; }
+  /* Search */
+  #search-input {
+    width: 100%;
+    background: var(--surface2);
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 10px 14px;
+    outline: none;
+  }
+  #search-input::placeholder { color: var(--text-dim); }
+  #search-input:focus { border-bottom-color: var(--accent); }
 
-/* ── FORMS ── */
-.form-section {
-  padding: 16px;
-  border-bottom: 1px solid var(--border);
-}
+  /* Node list */
+  #node-list {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
 
-.form-title {
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: var(--muted2);
-  margin-bottom: 12px;
-}
+  .node-item {
+    padding: 9px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    transition: background 0.1s;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .node-item:hover { background: var(--surface2); }
+  .node-item.selected { background: rgba(123,123,255,0.1); border-left: 2px solid var(--accent); }
 
-label {
-  display: block;
-  font-size: 0.62rem;
-  color: var(--muted2);
-  margin-bottom: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
+  .node-type-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+  }
 
-input, textarea, select {
-  width: 100%;
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.72rem;
-  padding: 8px 10px;
-  margin-bottom: 10px;
-  outline: none;
-  transition: border-color 0.15s;
-}
+  .node-statement {
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--text);
+  }
 
-input:focus, textarea:focus, select:focus {
-  border-color: var(--empirical);
-}
+  .node-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
 
-textarea { resize: vertical; min-height: 70px; }
+  .node-actions {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+  .node-item:hover .node-actions { opacity: 1; }
 
-select option { background: var(--surface2); }
+  .icon-btn {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: all 0.1s;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .icon-btn.pin-active { border-color: var(--gold); color: var(--gold); background: rgba(255,217,123,0.1); }
 
-/* ── BUTTONS ── */
-.btn {
-  padding: 8px 16px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.65rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  border: 1px solid;
-  cursor: pointer;
-  transition: all 0.15s;
-}
+  /* Pinned nodes */
+  #pinned-section { padding: 8px 14px; }
+  .pinned-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,217,123,0.1);
+    border: 1px solid rgba(255,217,123,0.3);
+    color: var(--gold);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    padding: 3px 7px;
+    margin: 2px;
+    cursor: pointer;
+  }
+  .pinned-tag:hover { background: rgba(255,217,123,0.2); }
 
-.btn-primary {
-  background: var(--empirical);
-  border-color: var(--empirical);
-  color: var(--bg);
-  width: 100%;
-}
+  /* Domain filter */
+  #domain-filter {
+    padding: 8px 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .domain-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    padding: 3px 7px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    color: var(--text-dim);
+    transition: all 0.1s;
+  }
+  .domain-tag.active { border-color: var(--accent); color: var(--accent); background: rgba(123,123,255,0.1); }
 
-.btn-primary:hover { opacity: 0.85; }
+  /* ── GRAPH CANVAS ── */
+  #graph-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
 
-.btn-sm {
-  padding: 4px 10px;
-  font-size: 0.58rem;
-}
+  #graph-svg {
+    width: 100%;
+    height: 100%;
+  }
 
-.btn-ghost {
-  background: transparent;
-  border-color: var(--border2);
-  color: var(--muted2);
-}
+  .graph-node circle {
+    cursor: pointer;
+    transition: r 0.2s, stroke-width 0.2s;
+  }
+  .graph-node:hover circle { stroke-width: 2.5; }
 
-.btn-ghost:hover { border-color: var(--empirical); color: var(--empirical); }
+  .graph-node.focus circle { stroke-width: 3; }
+  .graph-node.pinned circle { stroke: var(--pin-color) !important; stroke-width: 2.5; }
+  .graph-node.path-node circle { stroke: var(--path-color) !important; stroke-width: 2; }
 
-.btn-danger {
-  background: transparent;
-  border-color: #ff3366;
-  color: #ff3366;
-}
+  .node-label {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 9px;
+    fill: var(--text);
+    pointer-events: none;
+    text-anchor: middle;
+  }
 
-.btn-challenge {
-  background: transparent;
-  border-color: var(--value);
-  color: var(--value);
-}
+  .graph-link {
+    stroke-opacity: 0.5;
+    transition: stroke-opacity 0.2s;
+  }
+  .graph-link:hover { stroke-opacity: 1; }
 
-/* ── DETAIL PANEL ── */
-.detail-panel {
-  padding: 16px;
-  flex: 1;
-  overflow-y: auto;
-}
+  .link-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7px;
+    fill: var(--text-dim);
+    pointer-events: none;
+  }
 
-.detail-title {
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: var(--muted2);
-  margin-bottom: 4px;
-}
+  /* Focus indicator */
+  #focus-banner {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(123,123,255,0.15);
+    border: 1px solid rgba(123,123,255,0.4);
+    padding: 5px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    pointer-events: none;
+    display: none;
+    max-width: 500px;
+    text-align: center;
+  }
 
-.detail-statement {
-  font-size: 0.8rem;
-  line-height: 1.6;
-  margin-bottom: 16px;
-  padding: 12px;
-  background: var(--surface2);
-  border-left: 3px solid var(--empirical);
-}
+  /* Controls overlay */
+  #graph-controls {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
 
-.detail-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  font-size: 0.58rem;
-  letter-spacing: 0.1em;
-  margin-right: 6px;
-  margin-bottom: 8px;
-}
+  .ctrl-btn {
+    width: 32px;
+    height: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.1s;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-.badge-empirical { background: #001a22; color: var(--empirical); border: 1px solid var(--empirical); }
-.badge-logical { background: #111a08; color: var(--logical); border: 1px solid var(--logical); }
-.badge-value { background: #1a0f08; color: var(--value); border: 1px solid var(--value); }
-.badge-pattern { background: #150a1a; color: var(--pattern); border: 1px solid var(--pattern); }
-.badge-established { background: #001a22; color: var(--empirical); border: 1px solid var(--empirical); }
-.badge-supported { background: #111a08; color: var(--logical); border: 1px solid var(--logical); }
-.badge-contested { background: #1a0f08; color: var(--value); border: 1px solid var(--value); }
-.badge-speculative { background: #150a1a; color: var(--pattern); border: 1px solid var(--pattern); }
+  /* Depth slider */
+  #depth-control {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
 
-.section-header {
-  font-size: 0.58rem;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: var(--muted2);
-  padding: 8px 0 6px;
-  border-top: 1px solid var(--border);
-  margin-top: 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+  #depth-slider {
+    -webkit-appearance: none;
+    width: 80px;
+    height: 2px;
+    background: var(--border);
+    outline: none;
+  }
+  #depth-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: var(--accent);
+    cursor: pointer;
+  }
 
-.challenge-item, .evidence-item {
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  padding: 10px;
-  margin-bottom: 8px;
-  font-size: 0.68rem;
-}
+  /* Legend */
+  #legend {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(10,10,15,0.85);
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 5px;
+    color: var(--text-dim);
+  }
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
 
-.challenge-ground {
-  font-size: 0.56rem;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: var(--value);
-  margin-bottom: 4px;
-}
+  /* ── RIGHT PANEL (detail) ── */
+  #detail-panel {
+    width: 340px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: translateX(340px);
+    transition: transform 0.25s ease;
+  }
+  #detail-panel.open { transform: translateX(0); }
 
-.challenge-status-open { color: var(--value); }
-.challenge-status-resolved_upheld { color: var(--logical); }
-.challenge-status-resolved_rejected { color: var(--muted2); }
+  #detail-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
 
-.challenge-arg { line-height: 1.5; color: var(--text); margin: 6px 0; }
-.challenge-by { color: var(--muted); font-size: 0.6rem; }
+  .detail-statement {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    background: var(--surface2);
+    border-left: 3px solid var(--accent);
+  }
 
-.evidence-source { color: var(--pattern); font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
-.evidence-desc { line-height: 1.5; }
+  .detail-triple {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
 
-/* ── NODE LIST ── */
-.node-list-item {
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  transition: background 0.1s;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
+  .triple-part {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border: 1px solid;
+  }
+  .triple-subject { border-color: var(--accent); color: var(--accent); }
+  .triple-predicate { border-color: var(--text-dim); color: var(--text-dim); }
+  .triple-object { border-color: var(--accent2); color: var(--accent2); }
 
-.node-list-item:hover { background: var(--surface2); }
+  .detail-badges {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
 
-.node-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  margin-top: 5px;
-}
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    padding: 3px 7px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
 
-.node-list-statement {
-  font-size: 0.7rem;
-  line-height: 1.4;
-  flex: 1;
-}
+  .badge.confidence-ESTABLISHED { border-color: var(--accent3); color: var(--accent3); }
+  .badge.confidence-SUPPORTED { border-color: var(--accent); color: var(--accent); }
+  .badge.confidence-CONTESTED { border-color: var(--gold); color: var(--gold); }
+  .badge.confidence-SPECULATIVE { border-color: var(--accent2); color: var(--accent2); }
+  .badge.confidence-REFUTED { border-color: #ff4444; color: #ff4444; }
 
-.node-list-meta {
-  font-size: 0.58rem;
-  color: var(--muted2);
-  margin-top: 2px;
-}
+  .detail-section-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 14px 0 7px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 5px;
+  }
 
-/* ── LEGEND ── */
-.legend {
-  padding: 12px 16px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
+  .edge-item {
+    padding: 7px 9px;
+    background: var(--surface2);
+    margin-bottom: 4px;
+    font-size: 10px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: border-color 0.1s;
+  }
+  .edge-item:hover { border-left-color: var(--accent); }
 
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.58rem;
-  color: var(--muted2);
-}
+  .edge-rel {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 2px;
+  }
 
-.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
-.legend-line { width: 20px; height: 2px; }
+  .edge-warrant {
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-top: 3px;
+    font-style: italic;
+  }
 
-/* ── TOAST ── */
-.toast {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  padding: 10px 20px;
-  font-size: 0.7rem;
-  z-index: 1000;
-  opacity: 0;
-  transition: opacity 0.3s;
-  pointer-events: none;
-}
+  .detail-action-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-right: 6px;
+    margin-top: 8px;
+  }
+  .detail-action-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .detail-action-btn.danger:hover { border-color: var(--accent2); color: var(--accent2); }
 
-.toast.show { opacity: 1; }
+  /* ── MODALS ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
 
-/* ── GRAPH ELEMENTS ── */
-.node-circle {
-  stroke-width: 2;
-  cursor: pointer;
-  transition: filter 0.15s;
-}
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    width: 500px;
+    max-width: 95vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 24px;
+  }
 
-.node-circle:hover { filter: brightness(1.3); }
-.node-circle.selected { stroke-width: 3; filter: brightness(1.4); }
+  .modal-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
 
-.node-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  fill: var(--text);
-  pointer-events: none;
-  text-anchor: middle;
-}
+  .form-row {
+    margin-bottom: 14px;
+  }
 
-.edge-line {
-  stroke-opacity: 0.6;
-  cursor: pointer;
-}
+  .form-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+    display: block;
+  }
 
-.edge-line:hover { stroke-opacity: 1; }
-.edge-line.selected { stroke-opacity: 1; stroke-width: 3 !important; }
+  .form-select, .form-input, .form-textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 8px 10px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-select:focus, .form-input:focus, .form-textarea:focus { border-color: var(--accent); }
+  .form-textarea { resize: vertical; min-height: 80px; }
 
-.edge-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 8px;
-  fill: var(--muted2);
-  pointer-events: none;
-}
+  .triple-preview {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    padding: 10px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    margin-bottom: 14px;
+    min-height: 38px;
+  }
+  .triple-preview span.s { color: var(--accent); }
+  .triple-preview span.p { color: var(--text); }
+  .triple-preview span.o { color: var(--accent2); }
 
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(--surface); }
-::-webkit-scrollbar-thumb { background: var(--border2); }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+    justify-content: flex-end;
+  }
 
-/* ── MODAL ── */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.7);
-  z-index: 100;
-  display: none;
-  align-items: center;
-  justify-content: center;
-}
+  .btn-primary {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    background: var(--accent);
+    border: none;
+    color: #000;
+    padding: 8px 18px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: opacity 0.15s;
+  }
+  .btn-primary:hover { opacity: 0.85; }
 
-.modal-overlay.open { display: flex; }
+  .btn-cancel {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 8px 18px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-cancel:hover { border-color: var(--text-dim); color: var(--text); }
 
-.modal {
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  width: 480px;
-  max-width: 95vw;
-  max-height: 85vh;
-  overflow-y: auto;
-  padding: 24px;
-}
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 9px 18px;
+    z-index: 2000;
+    transition: transform 0.25s ease;
+    pointer-events: none;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+  #toast.success { border-color: var(--accent3); color: var(--accent3); }
+  #toast.error { border-color: var(--accent2); color: var(--accent2); }
 
-.modal-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.2rem;
-  letter-spacing: 0.1em;
-  color: var(--value);
-  margin-bottom: 16px;
-}
-
-.modal-close {
-  float: right;
-  background: none;
-  border: none;
-  color: var(--muted2);
-  font-size: 1.2rem;
-  cursor: pointer;
-  line-height: 1;
-}
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
 </style>
 </head>
 <body>
 
-<header>
-  <span class="logo">Moral Reasoning Graph</span>
-  <div class="header-actions">
-    <button class="btn btn-ghost btn-sm" onclick="seedData()">Load Example</button>
-    <button class="btn btn-ghost btn-sm" onclick="loadGraph()">↻ Refresh</button>
-  </div>
-</header>
+<!-- HEADER -->
+<div id="header">
+  <div id="logo">Logicpedia</div>
+  <div id="header-stats">— — —</div>
+  <div class="header-spacer"></div>
+  <button class="header-btn" onclick="openModal('add-node-modal')">+ Node</button>
+  <button class="header-btn" onclick="openModal('add-edge-modal')">+ Edge</button>
+  <button class="header-btn" onclick="openModal('add-vocab-modal')">+ Vocab</button>
+  <button class="header-btn active" id="view-toggle" onclick="toggleViewMode()">Focus View</button>
+  <a href="/docs" target="_blank" class="header-btn" style="text-decoration:none">API Docs ↗</a>
+</div>
 
-<div class="app">
-  <div id="graph-container">
-    <svg id="graph-svg"></svg>
-  </div>
+<!-- MAIN -->
+<div id="main">
 
-  <div class="panel">
-    <div class="panel-tabs">
-      <div class="tab active" onclick="switchTab('add')">Add</div>
-      <div class="tab" onclick="switchTab('nodes')">Nodes</div>
-      <div class="tab" onclick="switchTab('detail')">Detail</div>
+  <!-- LEFT PANEL -->
+  <div id="left-panel">
+    <input id="search-input" type="text" placeholder="search nodes..." oninput="filterNodes()">
+
+    <div class="panel-section">
+      <div class="panel-header"><span>Pinned</span></div>
+      <div id="pinned-section">
+        <div id="pinned-tags" style="font-size:10px;color:var(--text-dim);padding:2px 0;">none pinned</div>
+      </div>
     </div>
 
-    <!-- ADD TAB -->
-    <div class="tab-content active" id="tab-add">
-      <div class="form-section">
-        <div class="form-title">New Node</div>
-        <label>Statement</label>
-        <textarea id="n-statement" placeholder="A factual claim, logical conclusion, or value assertion..."></textarea>
-        <label>Type</label>
-        <select id="n-type">
-          <option value="EMPIRICAL_FACT">Empirical Fact</option>
-          <option value="LOGICAL_CONCLUSION">Logical Conclusion</option>
-          <option value="VALUE_ASSERTION">Value Assertion</option>
-          <option value="OBSERVED_PATTERN">Observed Pattern</option>
+    <div class="panel-section">
+      <div class="panel-header"><span>Domain</span></div>
+      <div id="domain-filter"></div>
+    </div>
+
+    <div class="panel-header"><span>Nodes</span> <span id="node-count" style="color:var(--text-dim)"></span></div>
+    <div id="node-list"></div>
+  </div>
+
+  <!-- GRAPH -->
+  <div id="graph-container">
+    <svg id="graph-svg"></svg>
+    <div id="focus-banner"></div>
+
+    <div id="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--node-empirical)"></div>empirical</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--node-logical)"></div>logical</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--node-value)"></div>value</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--node-definitional)"></div>definitional</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--node-observed)"></div>observed</div>
+      <div style="border-top:1px solid var(--border);margin:6px 0;"></div>
+      <div class="legend-item"><div class="legend-dot" style="background:transparent;border:2px solid var(--focus-color)"></div>focus</div>
+      <div class="legend-item"><div class="legend-dot" style="background:transparent;border:2px solid var(--pin-color)"></div>pinned</div>
+      <div class="legend-item"><div class="legend-dot" style="background:transparent;border:2px solid var(--path-color)"></div>path</div>
+    </div>
+
+    <div id="graph-controls">
+      <button class="ctrl-btn" onclick="resetZoom()">⌖</button>
+      <button class="ctrl-btn" onclick="zoomIn()">+</button>
+      <button class="ctrl-btn" onclick="zoomOut()">−</button>
+    </div>
+
+    <div id="depth-control">
+      <span>depth</span>
+      <input type="range" id="depth-slider" min="1" max="5" value="2" oninput="onDepthChange(this.value)">
+      <span id="depth-value">2</span>
+    </div>
+  </div>
+
+  <!-- RIGHT DETAIL PANEL -->
+  <div id="detail-panel">
+    <div style="display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim)">Node Detail</span>
+      <div class="header-spacer"></div>
+      <button class="icon-btn" onclick="closeDetail()">✕</button>
+    </div>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<!-- ADD NODE MODAL -->
+<div id="add-node-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">Add Node — Structured Triple</div>
+
+    <div class="triple-preview" id="triple-preview">
+      <span style="color:var(--text-dim)">Select subject, predicate and object below</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:end;margin-bottom:14px">
+      <div>
+        <label class="form-label">Subject</label>
+        <select class="form-select" id="node-subject" onchange="updateTriplePreview()">
+          <option value="">— entity —</option>
         </select>
-        <label>Confidence</label>
-        <select id="n-confidence">
+      </div>
+      <div style="padding-bottom:1px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;font-size:14px;text-align:center">→</div>
+      <div>
+        <label class="form-label">Object</label>
+        <select class="form-select" id="node-object" onchange="updateTriplePreview()">
+          <option value="">— entity —</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">Predicate</label>
+      <select class="form-select" id="node-predicate" onchange="updateTriplePreview()">
+        <option value="">— predicate —</option>
+      </select>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-row">
+        <label class="form-label">Type</label>
+        <select class="form-select" id="node-type">
+          <option value="EMPIRICAL">Empirical</option>
+          <option value="LOGICAL">Logical</option>
+          <option value="VALUE">Value</option>
+          <option value="DEFINITIONAL">Definitional</option>
+          <option value="OBSERVED">Observed</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Confidence</label>
+        <select class="form-select" id="node-confidence">
           <option value="ESTABLISHED">Established</option>
-          <option value="SUPPORTED">Supported</option>
+          <option value="SUPPORTED" selected>Supported</option>
           <option value="CONTESTED">Contested</option>
           <option value="SPECULATIVE">Speculative</option>
         </select>
-        <label>Your name</label>
-        <input id="n-author" type="text" placeholder="anonymous">
-        <button class="btn btn-primary" onclick="createNode()">Add Node</button>
       </div>
+    </div>
 
-      <div class="form-section">
-        <div class="form-title">New Connection</div>
-        <label>From Node ID</label>
-        <input id="e-from" type="text" placeholder="Click a node to fill...">
-        <label>To Node ID</label>
-        <input id="e-to" type="text" placeholder="Then shift-click another...">
-        <label>Relationship</label>
-        <select id="e-rel">
-          <option value="CAUSES">Causes</option>
-          <option value="LOGICALLY_IMPLIES">Logically Implies</option>
-          <option value="SUPPORTS">Supports</option>
-          <option value="CONTRADICTS">Contradicts</option>
-          <option value="UNDERMINES">Undermines</option>
-          <option value="PREREQUISITE_FOR">Prerequisite For</option>
-          <option value="CORRELATES_WITH">Correlates With</option>
+    <div class="form-row">
+      <label class="form-label">Domain Tags (comma separated)</label>
+      <input class="form-input" type="text" id="node-tags" placeholder="ethics, diet, biology">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('add-node-modal')">Cancel</button>
+      <button class="btn-primary" onclick="submitNode()">Add Node</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD EDGE MODAL -->
+<div id="add-edge-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">Add Edge — Warranted Connection</div>
+
+    <div class="form-row">
+      <label class="form-label">Source Node</label>
+      <select class="form-select" id="edge-source">
+        <option value="">— select source —</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">Relationship</label>
+      <select class="form-select" id="edge-relationship">
+        <option value="SUPPORTS">SUPPORTS</option>
+        <option value="UNDERMINES">UNDERMINES</option>
+        <option value="CAUSES">CAUSES</option>
+        <option value="IMPLIES">IMPLIES</option>
+        <option value="REQUIRES">REQUIRES</option>
+        <option value="CONTRADICTS">CONTRADICTS</option>
+        <option value="CORRELATES_WITH">CORRELATES_WITH</option>
+        <option value="DEFINES">DEFINES</option>
+        <option value="EXEMPLIFIES">EXEMPLIFIES</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">Target Node</label>
+      <select class="form-select" id="edge-target">
+        <option value="">— select target —</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">Warrant — why does this connection hold?</label>
+      <textarea class="form-textarea" id="edge-warrant" placeholder="State the logical or empirical basis for this connection..."></textarea>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">Strength (0–1)</label>
+      <input class="form-input" type="number" id="edge-strength" min="0" max="1" step="0.05" value="0.7">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('add-edge-modal')">Cancel</button>
+      <button class="btn-primary" onclick="submitEdge()">Add Edge</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD VOCAB MODAL -->
+<div id="add-vocab-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">Add Vocabulary Term</div>
+
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button class="header-btn active" id="vocab-tab-entity" onclick="switchVocabTab('entity')">Entity</button>
+      <button class="header-btn" id="vocab-tab-predicate" onclick="switchVocabTab('predicate')">Predicate</button>
+    </div>
+
+    <div id="vocab-entity-form">
+      <div class="form-row">
+        <label class="form-label">Term (use_underscores)</label>
+        <input class="form-input" type="text" id="vocab-entity-term" placeholder="e.g. social_media">
+      </div>
+      <div class="form-row">
+        <label class="form-label">Category</label>
+        <select class="form-select" id="vocab-entity-category">
+          <option>AGENT</option><option>CONCEPT</option><option>PROCESS</option>
+          <option>STATE</option><option>PROPERTY</option><option>SYSTEM</option>
         </select>
-        <label>Warrant (required — why does this connection hold?)</label>
-        <textarea id="e-warrant" placeholder="State explicitly why this connection holds..."></textarea>
-        <label>Strength (0–1)</label>
-        <input id="e-strength" type="number" min="0" max="1" step="0.05" value="0.7">
-        <label>Your name</label>
-        <input id="e-author" type="text" placeholder="anonymous">
-        <button class="btn btn-primary" onclick="createEdge()">Add Connection</button>
       </div>
-
-      <div class="legend">
-        <div style="width:100%; font-size:0.58rem; color:var(--muted2); text-transform:uppercase; letter-spacing:0.15em; margin-bottom:4px;">Node Types</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--empirical)"></div>Empirical</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--logical)"></div>Logical</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--value)"></div>Value</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--pattern)"></div>Pattern</div>
+      <div class="form-row">
+        <label class="form-label">Description</label>
+        <input class="form-input" type="text" id="vocab-entity-desc" placeholder="Brief definition">
       </div>
     </div>
 
-    <!-- NODES TAB -->
-    <div class="tab-content" id="tab-nodes">
-      <div id="node-list"></div>
+    <div id="vocab-predicate-form" style="display:none">
+      <div class="form-row">
+        <label class="form-label">Term (UPPERCASE)</label>
+        <input class="form-input" type="text" id="vocab-pred-term" placeholder="e.g. ACCELERATES">
+      </div>
+      <div class="form-row">
+        <label class="form-label">English form (as it reads in a sentence)</label>
+        <input class="form-input" type="text" id="vocab-pred-english" placeholder="e.g. accelerates">
+      </div>
+      <div class="form-row">
+        <label class="form-label">Description</label>
+        <input class="form-input" type="text" id="vocab-pred-desc" placeholder="What this predicate means">
+      </div>
     </div>
 
-    <!-- DETAIL TAB -->
-    <div class="tab-content" id="tab-detail">
-      <div class="detail-panel" id="detail-content">
-        <div style="color:var(--muted); font-size:0.7rem; padding:20px 0;">
-          Click a node or connection to see details, evidence, and challenges.
-        </div>
-      </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('add-vocab-modal')">Cancel</button>
+      <button class="btn-primary" onclick="submitVocab()">Add Term</button>
     </div>
   </div>
 </div>
 
-<!-- Challenge Modal -->
-<div class="modal-overlay" id="challenge-modal">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">Raise a Challenge</div>
-    <label>What property are you disputing?</label>
-    <input id="c-property" type="text" placeholder="e.g. statement, warrant, confidence...">
-    <label>Ground of challenge</label>
-    <select id="c-ground">
-      <option value="EMPIRICAL">Empirical — disputing a factual claim</option>
-      <option value="LOGICAL">Logical — disputing the reasoning</option>
-      <option value="VALUE">Value — disputing a normative claim</option>
-      <option value="SCOPE">Scope — disputing applicability</option>
-    </select>
-    <label>Your argument</label>
-    <textarea id="c-argument" placeholder="State your challenge clearly and specifically..."></textarea>
-    <label>Your name</label>
-    <input id="c-author" type="text" placeholder="anonymous">
-    <button class="btn btn-primary" style="border-color:var(--value);background:var(--value);" onclick="submitChallenge()">Submit Challenge</button>
-  </div>
-</div>
-
-<!-- Evidence Modal -->
-<div class="modal-overlay" id="evidence-modal">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title" style="color:var(--pattern)">Add Evidence</div>
-    <label>Source type</label>
-    <select id="ev-source">
-      <option value="PEER_REVIEWED">Peer Reviewed</option>
-      <option value="OBSERVATIONAL">Observational</option>
-      <option value="EXPERT_CONSENSUS">Expert Consensus</option>
-      <option value="LOGICAL_DERIVATION">Logical Derivation</option>
-      <option value="ANECDOTAL">Anecdotal</option>
-    </select>
-    <label>Description</label>
-    <textarea id="ev-description" placeholder="Describe the evidence..."></textarea>
-    <label>URL (optional)</label>
-    <input id="ev-url" type="text" placeholder="https://...">
-    <label>Citation (optional)</label>
-    <input id="ev-citation" type="text" placeholder="Author, Year, Journal...">
-    <label>Your name</label>
-    <input id="ev-author" type="text" placeholder="anonymous">
-    <button class="btn btn-primary" style="border-color:var(--pattern);background:var(--pattern);" onclick="submitEvidence()">Add Evidence</button>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
+<div id="toast"></div>
 
 <script>
-const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:8000'
-  : 'https://logicpedia-production.up.railway.app';
+const API = '';  // same-origin
+let allNodes = [], allEdges = [], vocab = { entities: [], predicates: [] };
+let focusNodeId = null, pinnedNodeIds = new Set(), currentDepth = 2;
+let viewMode = 'focus'; // 'focus' or 'full'
+let selectedDomain = null;
+let simulation, svg, zoomBehavior, linkGroup, nodeGroup;
+let currentVocabTab = 'entity';
 
-let graphData = { nodes: [], edges: [] };
-let simulation, svg, g;
-let selectedNode = null;
-let pendingEdgeFrom = null;
-let currentTarget = null; // for modals
+// ─── INIT ────────────────────────────────────────────────────────────────────
 
-// ── TABS ──────────────────────────────────────────────────────────────────────
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t,i) => {
-    const names = ['add','nodes','detail'];
-    t.classList.toggle('active', names[i] === name);
-  });
-  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
+async function init() {
+  await loadVocab();
+  await loadGraph();
+  initGraph();
+  renderNodeList();
+  renderDomainFilter();
+  updateStats();
 }
 
-// ── TOAST ─────────────────────────────────────────────────────────────────────
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+async function loadVocab() {
+  const r = await fetch(`${API}/vocab`);
+  vocab = await r.json();
+  populateVocabSelects();
 }
 
-// ── COLOUR HELPERS ────────────────────────────────────────────────────────────
-const NODE_COLORS = {
-  EMPIRICAL_FACT: '#00d4ff',
-  LOGICAL_CONCLUSION: '#a8ff3e',
-  VALUE_ASSERTION: '#ff6b35',
-  OBSERVED_PATTERN: '#c678dd',
-};
-
-const EDGE_COLORS = {
-  CAUSES: '#ff6b35',
-  CONTRADICTS: '#ff3366',
-  LOGICALLY_IMPLIES: '#a8ff3e',
-  SUPPORTS: '#00d4ff',
-  UNDERMINES: '#ff9900',
-  PREREQUISITE_FOR: '#c678dd',
-  CORRELATES_WITH: '#88aaff',
-};
-
-function nodeColor(type) { return NODE_COLORS[type] || '#888'; }
-function edgeColor(rel) { return EDGE_COLORS[rel] || '#555'; }
-
-function badgeClass(val) {
-  return 'badge-' + (val || '').toLowerCase().replace('_','');
-}
-
-// ── API CALLS ─────────────────────────────────────────────────────────────────
-async function api(path, method='GET', body=null) {
-  const opts = { method, headers: { 'Content-Type': 'application/json' } };
-  if (body) opts.body = JSON.stringify(body);
-  const res = await fetch(API + path, opts);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || res.statusText);
-  }
-  return res.json();
-}
-
-// ── LOAD GRAPH ────────────────────────────────────────────────────────────────
 async function loadGraph() {
-  try {
-    graphData = await api('/graph');
-    renderGraph();
-    renderNodeList();
-  } catch(e) {
-    toast('Cannot reach API — is the backend running? ' + e.message);
+  const r = await fetch(`${API}/graph`);
+  const data = await r.json();
+  allNodes = data.nodes;
+  allEdges = data.edges;
+}
+
+async function loadView() {
+  if (!focusNodeId) {
+    renderGraphData(allNodes, allEdges, new Set(), new Set());
+    return;
   }
+  const pinParam = pinnedNodeIds.size ? `&pinned=${[...pinnedNodeIds].join(',')}` : '';
+  const r = await fetch(`${API}/view?focus_id=${focusNodeId}${pinParam}&depth=${currentDepth}`);
+  const data = await r.json();
+  const pathIds = new Set(Object.values(data.paths).flat());
+  renderGraphData(data.nodes, data.edges, pinnedNodeIds, pathIds);
+  updateFocusBanner(data.nodes.find(n => n.id === focusNodeId));
 }
 
-async function seedData() {
-  try {
-    const r = await api('/seed', 'POST');
-    toast(r.message);
-    loadGraph();
-  } catch(e) {
-    toast(e.message);
-  }
-}
+// ─── GRAPH ───────────────────────────────────────────────────────────────────
 
-// ── CREATE NODE ───────────────────────────────────────────────────────────────
-async function createNode() {
-  const stmt = document.getElementById('n-statement').value.trim();
-  if (!stmt) { toast('Statement is required'); return; }
-  try {
-    await api('/nodes', 'POST', {
-      statement: stmt,
-      type: document.getElementById('n-type').value,
-      confidence: document.getElementById('n-confidence').value,
-      created_by: document.getElementById('n-author').value || 'anonymous',
-    });
-    document.getElementById('n-statement').value = '';
-    toast('Node added');
-    loadGraph();
-  } catch(e) { toast(e.message); }
-}
-
-// ── CREATE EDGE ───────────────────────────────────────────────────────────────
-async function createEdge() {
-  const from = document.getElementById('e-from').value.trim();
-  const to = document.getElementById('e-to').value.trim();
-  const warrant = document.getElementById('e-warrant').value.trim();
-  if (!from || !to) { toast('Select two nodes first'); return; }
-  if (!warrant) { toast('Warrant is required — why does this connection hold?'); return; }
-  try {
-    await api('/edges', 'POST', {
-      node_a_id: from,
-      node_b_id: to,
-      relationship: document.getElementById('e-rel').value,
-      strength: parseFloat(document.getElementById('e-strength').value),
-      warrant,
-      created_by: document.getElementById('e-author').value || 'anonymous',
-    });
-    document.getElementById('e-from').value = '';
-    document.getElementById('e-to').value = '';
-    document.getElementById('e-warrant').value = '';
-    pendingEdgeFrom = null;
-    toast('Connection added');
-    loadGraph();
-  } catch(e) { toast(e.message); }
-}
-
-// ── NODE LIST ─────────────────────────────────────────────────────────────────
-function renderNodeList() {
-  const list = document.getElementById('node-list');
-  list.innerHTML = graphData.nodes.map(n => `
-    <div class="node-list-item" onclick="showNodeDetail('${n.id}')">
-      <div class="node-dot" style="background:${nodeColor(n.type)}"></div>
-      <div>
-        <div class="node-list-statement">${truncate(n.statement, 80)}</div>
-        <div class="node-list-meta">${n.type.replace('_',' ')} · ${n.confidence}${n.open_challenges > 0 ? ` · ⚠ ${n.open_challenges} challenge(s)` : ''}</div>
-      </div>
-    </div>
-  `).join('');
-}
-
-function truncate(s, n) {
-  return s.length > n ? s.slice(0, n) + '…' : s;
-}
-
-// ── DETAIL ────────────────────────────────────────────────────────────────────
-async function showNodeDetail(id) {
-  switchTab('detail');
-  try {
-    const n = await api('/nodes/' + id);
-    currentTarget = { id, type: 'NODE' };
-    document.getElementById('detail-content').innerHTML = `
-      <div class="detail-title">Node</div>
-      <div class="detail-statement">${n.statement}</div>
-      <span class="detail-badge ${badgeClass(n.type)}">${n.type.replace(/_/g,' ')}</span>
-      <span class="detail-badge ${badgeClass(n.confidence)}">${n.confidence}</span>
-      <div style="font-size:0.6rem;color:var(--muted2);margin-bottom:12px;">by ${n.created_by} · ${n.created_at.slice(0,10)}</div>
-
-      <div style="display:flex;gap:8px;margin-bottom:16px;">
-        <button class="btn btn-challenge btn-sm" onclick="openModal('challenge-modal')">⚠ Challenge</button>
-        <button class="btn btn-ghost btn-sm" onclick="openModal('evidence-modal')">+ Evidence</button>
-      </div>
-
-      <div class="section-header">Evidence (${n.evidence.length})</div>
-      ${n.evidence.map(e => `
-        <div class="evidence-item">
-          <div class="evidence-source">${e.source_type.replace(/_/g,' ')}</div>
-          <div class="evidence-desc">${e.description}</div>
-          ${e.url ? `<a href="${e.url}" target="_blank" style="color:var(--empirical);font-size:0.62rem;">↗ source</a>` : ''}
-        </div>
-      `).join('') || '<div style="color:var(--muted);font-size:0.68rem;padding:8px 0;">No evidence yet</div>'}
-
-      <div class="section-header">Challenges (${n.challenges.length})</div>
-      ${n.challenges.map(c => `
-        <div class="challenge-item">
-          <div class="challenge-ground">${c.ground} · disputing: ${c.property_disputed}</div>
-          <div class="challenge-arg">${c.argument}</div>
-          <div class="challenge-by">by ${c.created_by} · <span class="challenge-status-${c.status.toLowerCase()}">${c.status.replace(/_/g,' ')}</span></div>
-        </div>
-      `).join('') || '<div style="color:var(--muted);font-size:0.68rem;padding:8px 0;">No challenges yet</div>'}
-    `;
-  } catch(e) { toast(e.message); }
-}
-
-async function showEdgeDetail(id) {
-  switchTab('detail');
-  try {
-    const e = await api('/edges/' + id);
-    currentTarget = { id, type: 'EDGE' };
-    const fromNode = graphData.nodes.find(n => n.id === e.node_a_id);
-    const toNode = graphData.nodes.find(n => n.id === e.node_b_id);
-    document.getElementById('detail-content').innerHTML = `
-      <div class="detail-title">Connection</div>
-      <div style="font-size:0.7rem;color:var(--muted2);margin-bottom:8px;">
-        <span style="color:${nodeColor(fromNode?.type)}">${truncate(fromNode?.statement || '?', 40)}</span>
-        <span style="color:${edgeColor(e.relationship)};margin:0 8px;">→ ${e.relationship.replace(/_/g,' ')} →</span>
-        <span style="color:${nodeColor(toNode?.type)}">${truncate(toNode?.statement || '?', 40)}</span>
-      </div>
-
-      <div class="detail-title" style="margin-top:12px;">Warrant</div>
-      <div class="detail-statement" style="border-left-color:${edgeColor(e.relationship)}">${e.warrant}</div>
-      <div style="font-size:0.62rem;color:var(--muted2);margin-bottom:4px;">Strength: ${Math.round(e.strength * 100)}%</div>
-      ${e.conditions ? `<div style="font-size:0.62rem;color:var(--muted2);margin-bottom:12px;">Conditions: ${e.conditions}</div>` : ''}
-      <div style="font-size:0.6rem;color:var(--muted2);margin-bottom:16px;">by ${e.created_by} · ${e.created_at.slice(0,10)}</div>
-
-      <div style="display:flex;gap:8px;margin-bottom:16px;">
-        <button class="btn btn-challenge btn-sm" onclick="openModal('challenge-modal')">⚠ Challenge Warrant</button>
-        <button class="btn btn-ghost btn-sm" onclick="openModal('evidence-modal')">+ Evidence</button>
-      </div>
-
-      <div class="section-header">Evidence (${e.evidence.length})</div>
-      ${e.evidence.map(ev => `
-        <div class="evidence-item">
-          <div class="evidence-source">${ev.source_type.replace(/_/g,' ')}</div>
-          <div class="evidence-desc">${ev.description}</div>
-        </div>
-      `).join('') || '<div style="color:var(--muted);font-size:0.68rem;padding:8px 0;">No evidence yet</div>'}
-
-      <div class="section-header">Challenges (${e.challenges.length})</div>
-      ${e.challenges.map(c => `
-        <div class="challenge-item">
-          <div class="challenge-ground">${c.ground} · ${c.property_disputed}</div>
-          <div class="challenge-arg">${c.argument}</div>
-          <div class="challenge-by">by ${c.created_by} · <span class="challenge-status-${c.status.toLowerCase()}">${c.status.replace(/_/g,' ')}</span></div>
-        </div>
-      `).join('') || '<div style="color:var(--muted);font-size:0.68rem;padding:8px 0;">No challenges yet</div>'}
-    `;
-  } catch(e) { toast(e.message); }
-}
-
-// ── MODALS ────────────────────────────────────────────────────────────────────
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open')); }
-
-async function submitChallenge() {
-  if (!currentTarget) return;
-  const prop = document.getElementById('c-property').value.trim();
-  const arg = document.getElementById('c-argument').value.trim();
-  if (!prop || !arg) { toast('Property and argument are required'); return; }
-  try {
-    await api('/challenges', 'POST', {
-      target_id: currentTarget.id,
-      target_type: currentTarget.type,
-      ground: document.getElementById('c-ground').value,
-      property_disputed: prop,
-      argument: arg,
-      created_by: document.getElementById('c-author').value || 'anonymous',
-    });
-    closeModal();
-    toast('Challenge submitted');
-    if (currentTarget.type === 'NODE') showNodeDetail(currentTarget.id);
-    else showEdgeDetail(currentTarget.id);
-  } catch(e) { toast(e.message); }
-}
-
-async function submitEvidence() {
-  if (!currentTarget) return;
-  const desc = document.getElementById('ev-description').value.trim();
-  if (!desc) { toast('Description is required'); return; }
-  try {
-    await api('/evidence', 'POST', {
-      target_id: currentTarget.id,
-      target_type: currentTarget.type,
-      source_type: document.getElementById('ev-source').value,
-      description: desc,
-      url: document.getElementById('ev-url').value || null,
-      citation: document.getElementById('ev-citation').value || null,
-      created_by: document.getElementById('ev-author').value || 'anonymous',
-    });
-    closeModal();
-    toast('Evidence added');
-    if (currentTarget.type === 'NODE') showNodeDetail(currentTarget.id);
-    else showEdgeDetail(currentTarget.id);
-  } catch(e) { toast(e.message); }
-}
-
-// ── GRAPH RENDERING ───────────────────────────────────────────────────────────
-function renderGraph() {
+function initGraph() {
   const container = document.getElementById('graph-container');
-  const W = container.clientWidth;
-  const H = container.clientHeight;
+  const w = container.clientWidth, h = container.clientHeight;
 
   d3.select('#graph-svg').selectAll('*').remove();
+  svg = d3.select('#graph-svg');
 
-  svg = d3.select('#graph-svg')
-    .attr('width', W)
-    .attr('height', H);
-
-  // Arrow markers
   const defs = svg.append('defs');
-  Object.entries(EDGE_COLORS).forEach(([rel, color]) => {
+  ['SUPPORTS','UNDERMINES','CAUSES','IMPLIES','REQUIRES','CONTRADICTS','CORRELATES_WITH','DEFINES','EXEMPLIFIES'].forEach(rel => {
     defs.append('marker')
-      .attr('id', 'arrow-' + rel)
+      .attr('id', `arrow-${rel}`)
       .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 22)
-      .attr('refY', 0)
-      .attr('markerWidth', 6)
-      .attr('markerHeight', 6)
+      .attr('refX', 22).attr('refY', 0)
+      .attr('markerWidth', 6).attr('markerHeight', 6)
       .attr('orient', 'auto')
       .append('path')
       .attr('d', 'M0,-5L10,0L0,5')
-      .attr('fill', color)
-      .attr('opacity', 0.7);
+      .attr('fill', edgeColor(rel));
   });
 
-  g = svg.append('g');
+  const g = svg.append('g').attr('id', 'zoom-group');
+  linkGroup = g.append('g').attr('id', 'links');
+  nodeGroup = g.append('g').attr('id', 'nodes');
 
-  // Zoom
-  const zoom = d3.zoom()
-    .scaleExtent([0.2, 4])
+  zoomBehavior = d3.zoom()
+    .scaleExtent([0.1, 4])
     .on('zoom', e => g.attr('transform', e.transform));
-  svg.call(zoom);
+  svg.call(zoomBehavior);
 
-  // Build simulation data
-  const nodes = graphData.nodes.map(n => ({ ...n }));
-  const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]));
-  const edges = graphData.edges
-    .filter(e => nodeMap[e.node_a_id] && nodeMap[e.node_b_id])
-    .map(e => ({ ...e, source: nodeMap[e.node_a_id], target: nodeMap[e.node_b_id] }));
-
-  simulation = d3.forceSimulation(nodes)
-    .force('link', d3.forceLink(edges).id(d => d.id).distance(160))
-    .force('charge', d3.forceManyBody().strength(-400))
-    .force('center', d3.forceCenter(W / 2, H / 2))
+  simulation = d3.forceSimulation()
+    .force('link', d3.forceLink().id(d => d.id).distance(120).strength(0.5))
+    .force('charge', d3.forceManyBody().strength(-300))
+    .force('center', d3.forceCenter(w/2, h/2))
     .force('collision', d3.forceCollide(30));
 
-  // Edges
-  const edgeLines = g.append('g').selectAll('line')
-    .data(edges)
-    .enter().append('line')
-    .attr('class', 'edge-line')
-    .attr('stroke', d => edgeColor(d.relationship))
-    .attr('stroke-width', d => 1 + d.strength * 2)
-    .attr('marker-end', d => `url(#arrow-${d.relationship})`)
-    .on('click', (event, d) => {
-      event.stopPropagation();
-      edgeLines.classed('selected', false);
-      d3.select(event.currentTarget).classed('selected', true);
-      showEdgeDetail(d.id);
-    });
+  renderGraphData(allNodes, allEdges, new Set(), new Set());
+}
 
-  // Edge labels
-  const edgeLabels = g.append('g').selectAll('text')
-    .data(edges)
-    .enter().append('text')
-    .attr('class', 'edge-label')
-    .attr('fill', d => edgeColor(d.relationship))
-    .attr('opacity', 0.7)
-    .text(d => d.relationship.replace(/_/g,' '));
+function nodeColor(type) {
+  return {
+    EMPIRICAL: 'var(--node-empirical)',
+    LOGICAL: 'var(--node-logical)',
+    VALUE: 'var(--node-value)',
+    DEFINITIONAL: 'var(--node-definitional)',
+    OBSERVED: 'var(--node-observed)'
+  }[type] || '#888';
+}
 
-  // Nodes
-  const nodeGroups = g.append('g').selectAll('g')
-    .data(nodes)
-    .enter().append('g')
-    .call(d3.drag()
-      .on('start', (event, d) => { if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
-      .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
-      .on('end', (event, d) => { if (!event.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; })
-    )
-    .on('click', (event, d) => {
-      if (event.shiftKey) {
-        // Second click in edge-creation mode
-        const fromId = document.getElementById('e-from').value.trim();
-        if (fromId && fromId !== d.id) {
-          document.getElementById('e-to').value = d.id;
-          switchTab('add');
-          toast('Now fill in the warrant and click Add Connection');
-        }
-        return;
-      }
-      // Select for edge-from
-      document.getElementById('e-from').value = d.id;
-      document.getElementById('e-to').value = '';
-      // Show detail
-      nodeGroups.selectAll('circle').classed('selected', false);
-      d3.select(event.currentTarget).select('circle').classed('selected', true);
-      showNodeDetail(d.id);
-      toast('Shift+click another node to connect');
-    });
+function edgeColor(rel) {
+  return {
+    SUPPORTS: '#4a9eff',
+    UNDERMINES: '#ff4444',
+    CAUSES: '#ffb07b',
+    IMPLIES: '#b47bff',
+    REQUIRES: '#7bffb0',
+    CONTRADICTS: '#ff7b7b',
+    CORRELATES_WITH: '#888',
+    DEFINES: '#7bffb0',
+    EXEMPLIFIES: '#7b7bff'
+  }[rel] || '#666';
+}
 
-  nodeGroups.append('circle')
-    .attr('class', 'node-circle')
-    .attr('r', d => 14 + Math.min(d.open_challenges * 3, 10))
-    .attr('fill', d => nodeColor(d.type) + '22')
-    .attr('stroke', d => nodeColor(d.type));
+function renderGraphData(nodes, edges, pinnedSet, pathSet) {
+  if (!simulation) return;
 
-  // Challenge indicator
-  nodeGroups.filter(d => d.open_challenges > 0)
-    .append('circle')
-    .attr('r', 5)
-    .attr('cx', 12)
-    .attr('cy', -12)
-    .attr('fill', '#ff6b35');
+  // Preserve positions
+  const posMap = {};
+  simulation.nodes().forEach(n => { posMap[n.id] = { x: n.x, y: n.y, vx: n.vx, vy: n.vy }; });
 
-  nodeGroups.append('text')
-    .attr('class', 'node-label')
-    .attr('dy', '0.35em')
-    .text(d => truncate(d.statement, 20));
-
-  simulation.on('tick', () => {
-    edgeLines
-      .attr('x1', d => d.source.x)
-      .attr('y1', d => d.source.y)
-      .attr('x2', d => d.target.x)
-      .attr('y2', d => d.target.y);
-
-    edgeLabels
-      .attr('x', d => (d.source.x + d.target.x) / 2)
-      .attr('y', d => (d.source.y + d.target.y) / 2);
-
-    nodeGroups.attr('transform', d => `translate(${d.x},${d.y})`);
+  const nodeData = nodes.map(n => {
+    const prev = posMap[n.id];
+    return { ...n, x: prev?.x, y: prev?.y, vx: prev?.vx || 0, vy: prev?.vy || 0 };
   });
 
-  // Background click to deselect
-  svg.on('click', () => {
-    nodeGroups.selectAll('circle').classed('selected', false);
-    edgeLines.classed('selected', false);
+  const nodeMap = new Map(nodeData.map(n => [n.id, n]));
+  const linkData = edges
+    .filter(e => nodeMap.has(e.source_id) && nodeMap.has(e.target_id))
+    .map(e => ({ ...e, source: e.source_id, target: e.target_id }));
+
+  // Links
+  const links = linkGroup.selectAll('.graph-link').data(linkData, d => d.id);
+  links.exit().remove();
+  const linksEnter = links.enter().append('line')
+    .attr('class', 'graph-link')
+    .attr('stroke-width', d => 0.5 + d.strength)
+    .attr('marker-end', d => `url(#arrow-${d.relationship})`);
+  const allLinks = linksEnter.merge(links)
+    .attr('stroke', d => edgeColor(d.relationship));
+
+  // Nodes
+  const nodesSel = nodeGroup.selectAll('.graph-node').data(nodeData, d => d.id);
+  nodesSel.exit().remove();
+  const nodesEnter = nodesSel.enter().append('g').attr('class', 'graph-node');
+
+  nodesEnter.append('circle')
+    .attr('r', d => focusNodeId === d.id ? 14 : 10)
+    .call(d3.drag()
+      .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+      .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+      .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; })
+    )
+    .on('click', (e, d) => { e.stopPropagation(); onNodeClick(d); });
+
+  nodesEnter.append('text').attr('class', 'node-label').attr('dy', 22);
+
+  const allNodes = nodesEnter.merge(nodesSel);
+
+  allNodes.select('circle')
+    .attr('fill', d => nodeColor(d.node_type))
+    .attr('fill-opacity', 0.8)
+    .attr('stroke', d => {
+      if (d.id === focusNodeId) return 'var(--focus-color)';
+      if (pinnedSet.has(d.id)) return 'var(--pin-color)';
+      if (pathSet.has(d.id)) return 'var(--path-color)';
+      return 'rgba(255,255,255,0.15)';
+    })
+    .attr('stroke-width', d => (d.id === focusNodeId || pinnedSet.has(d.id)) ? 2.5 : 1)
+    .attr('r', d => d.id === focusNodeId ? 14 : 10);
+
+  allNodes.select('text').text(d => truncate(d.statement, 28));
+
+  allNodes
+    .classed('focus', d => d.id === focusNodeId)
+    .classed('pinned', d => pinnedSet.has(d.id))
+    .classed('path-node', d => pathSet.has(d.id));
+
+  simulation.nodes(nodeData).on('tick', () => {
+    allLinks
+      .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+    allNodes.attr('transform', d => `translate(${d.x},${d.y})`);
+  });
+  simulation.force('link').links(linkData);
+  simulation.alpha(0.3).restart();
+}
+
+function truncate(s, n) {
+  return s && s.length > n ? s.slice(0, n) + '…' : s;
+}
+
+// ─── INTERACTIONS ─────────────────────────────────────────────────────────────
+
+async function onNodeClick(d) {
+  await showDetail(d.id);
+  if (viewMode === 'focus') {
+    focusNodeId = d.id;
+    await loadView();
+    highlightListItem(d.id);
+  }
+}
+
+async function showDetail(nodeId) {
+  const r = await fetch(`${API}/nodes/${nodeId}`);
+  const node = await r.json();
+  renderDetail(node);
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+function renderDetail(node) {
+  const tags = Array.isArray(node.domain_tags) ? node.domain_tags : JSON.parse(node.domain_tags || '[]');
+  const out = [];
+  out.push(`<div class="detail-statement">${node.statement}</div>`);
+  out.push(`<div class="detail-badges">
+    <span class="badge confidence-${node.confidence}">${node.confidence}</span>
+    <span class="badge">${node.node_type}</span>
+    ${tags.map(t => `<span class="badge">${t}</span>`).join('')}
+  </div>`);
+
+  const isPinned = pinnedNodeIds.has(node.id);
+  out.push(`<div>
+    <button class="detail-action-btn" onclick="setFocus('${node.id}')">Set Focus</button>
+    <button class="detail-action-btn ${isPinned ? 'active' : ''}" onclick="togglePin('${node.id}')">${isPinned ? '★ Pinned' : '☆ Pin'}</button>
+    <button class="detail-action-btn danger" onclick="deleteNode('${node.id}')">Delete</button>
+  </div>`);
+
+  if (node.outgoing_edges?.length) {
+    out.push(`<div class="detail-section-title">Outgoing (${node.outgoing_edges.length})</div>`);
+    node.outgoing_edges.forEach(e => {
+      const target = allNodes.find(n => n.id === e.target_id);
+      out.push(`<div class="edge-item" onclick="onEdgeNodeClick('${e.target_id}')">
+        <div class="edge-rel">${e.relationship} →</div>
+        <div>${target?.statement || e.target_id}</div>
+        <div class="edge-warrant">"${e.warrant_text || ''}"</div>
+      </div>`);
+    });
+  }
+
+  if (node.incoming_edges?.length) {
+    out.push(`<div class="detail-section-title">Incoming (${node.incoming_edges.length})</div>`);
+    node.incoming_edges.forEach(e => {
+      const source = allNodes.find(n => n.id === e.source_id);
+      out.push(`<div class="edge-item" onclick="onEdgeNodeClick('${e.source_id}')">
+        <div class="edge-rel">← ${e.relationship}</div>
+        <div>${source?.statement || e.source_id}</div>
+        <div class="edge-warrant">"${e.warrant_text || ''}"</div>
+      </div>`);
+    });
+  }
+
+  if (node.evidence?.length) {
+    out.push(`<div class="detail-section-title">Evidence (${node.evidence.length})</div>`);
+    node.evidence.forEach(ev => {
+      out.push(`<div class="edge-item">
+        <div class="edge-rel">${ev.source_type}</div>
+        <div>${ev.description}</div>
+        ${ev.citation ? `<div class="edge-warrant">${ev.citation}${ev.year ? ` (${ev.year})` : ''}</div>` : ''}
+      </div>`);
+    });
+  }
+
+  if (node.challenges?.length) {
+    out.push(`<div class="detail-section-title">Challenges (${node.challenges.length})</div>`);
+    node.challenges.forEach(ch => {
+      out.push(`<div class="edge-item">
+        <div class="edge-rel">${ch.ground} · ${ch.status}</div>
+        <div>${ch.argument}</div>
+      </div>`);
+    });
+  }
+
+  document.getElementById('detail-content').innerHTML = out.join('');
+}
+
+async function onEdgeNodeClick(nodeId) {
+  await showDetail(nodeId);
+}
+
+async function setFocus(nodeId) {
+  focusNodeId = nodeId;
+  viewMode = 'focus';
+  document.getElementById('view-toggle').textContent = 'Focus View';
+  document.getElementById('view-toggle').classList.add('active');
+  await loadView();
+  highlightListItem(nodeId);
+}
+
+function togglePin(nodeId) {
+  if (pinnedNodeIds.has(nodeId)) {
+    pinnedNodeIds.delete(nodeId);
+  } else {
+    pinnedNodeIds.add(nodeId);
+  }
+  renderPinnedTags();
+  if (focusNodeId) loadView();
+}
+
+function renderPinnedTags() {
+  const container = document.getElementById('pinned-tags');
+  if (pinnedNodeIds.size === 0) {
+    container.innerHTML = '<span style="font-size:10px;color:var(--text-dim)">none pinned</span>';
+    return;
+  }
+  container.innerHTML = [...pinnedNodeIds].map(id => {
+    const node = allNodes.find(n => n.id === id);
+    const label = node ? truncate(node.statement, 24) : id;
+    return `<span class="pinned-tag" onclick="togglePin('${id}')">★ ${label} ✕</span>`;
+  }).join('');
+}
+
+function onDepthChange(val) {
+  document.getElementById('depth-value').textContent = val;
+  currentDepth = parseInt(val);
+  if (focusNodeId && viewMode === 'focus') loadView();
+}
+
+async function toggleViewMode() {
+  if (viewMode === 'focus') {
+    viewMode = 'full';
+    document.getElementById('view-toggle').textContent = 'Full Graph';
+    document.getElementById('view-toggle').classList.remove('active');
+    document.getElementById('focus-banner').style.display = 'none';
+    renderGraphData(allNodes, allEdges, pinnedNodeIds, new Set());
+  } else {
+    viewMode = 'focus';
+    document.getElementById('view-toggle').textContent = 'Focus View';
+    document.getElementById('view-toggle').classList.add('active');
+    if (focusNodeId) await loadView();
+    else renderGraphData(allNodes, allEdges, pinnedNodeIds, new Set());
+  }
+}
+
+function updateFocusBanner(focusNode) {
+  const banner = document.getElementById('focus-banner');
+  if (focusNode) {
+    banner.textContent = `⦿ ${focusNode.statement}`;
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+}
+
+// ─── NODE LIST ───────────────────────────────────────────────────────────────
+
+function renderNodeList() {
+  const search = document.getElementById('search-input').value.toLowerCase();
+  const list = document.getElementById('node-list');
+  let filtered = allNodes;
+  if (search) filtered = filtered.filter(n => n.statement?.toLowerCase().includes(search));
+  if (selectedDomain) filtered = filtered.filter(n => {
+    const tags = Array.isArray(n.domain_tags) ? n.domain_tags : JSON.parse(n.domain_tags || '[]');
+    return tags.includes(selectedDomain);
+  });
+  document.getElementById('node-count').textContent = `${filtered.length}`;
+
+  list.innerHTML = filtered.map(n => {
+    const isPinned = pinnedNodeIds.has(n.id);
+    const isFocus = focusNodeId === n.id;
+    return `<div class="node-item ${isFocus ? 'selected' : ''}" onclick="onNodeClick({id:'${n.id}'})">
+      <div class="node-type-dot" style="background:${nodeColor(n.node_type)}"></div>
+      <div style="flex:1;min-width:0">
+        <div class="node-statement">${n.statement}</div>
+        <div class="node-meta">${n.confidence} · ${n.node_type}</div>
+      </div>
+      <div class="node-actions">
+        <div class="icon-btn ${isPinned ? 'pin-active' : ''}" onclick="event.stopPropagation();togglePin('${n.id}')" title="Pin">★</div>
+        <div class="icon-btn" onclick="event.stopPropagation();setFocus('${n.id}')" title="Focus">⦿</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterNodes() { renderNodeList(); }
+
+function highlightListItem(nodeId) {
+  document.querySelectorAll('.node-item').forEach(el => el.classList.remove('selected'));
+  // re-render is easier
+  renderNodeList();
+}
+
+function renderDomainFilter() {
+  const domains = new Set();
+  allNodes.forEach(n => {
+    const tags = Array.isArray(n.domain_tags) ? n.domain_tags : JSON.parse(n.domain_tags || '[]');
+    tags.forEach(t => domains.add(t));
+  });
+  const container = document.getElementById('domain-filter');
+  container.innerHTML = [...domains].sort().map(d =>
+    `<span class="domain-tag ${selectedDomain === d ? 'active' : ''}" onclick="selectDomain('${d}')">${d}</span>`
+  ).join('');
+}
+
+function selectDomain(domain) {
+  selectedDomain = selectedDomain === domain ? null : domain;
+  renderDomainFilter();
+  renderNodeList();
+}
+
+function updateStats() {
+  document.getElementById('header-stats').textContent =
+    `${allNodes.length} nodes · ${allEdges.length} edges`;
+}
+
+// ─── VOCAB SELECTS ────────────────────────────────────────────────────────────
+
+function populateVocabSelects() {
+  const entities = vocab.entities || [];
+  const predicates = vocab.predicates || [];
+
+  const entityOptions = entities.map(e =>
+    `<option value="${e.term}">[${e.category}] ${e.term.replace(/_/g,' ')}</option>`
+  ).join('');
+
+  ['node-subject','node-object'].forEach(id => {
+    const el = document.getElementById(id);
+    el.innerHTML = '<option value="">— entity —</option>' + entityOptions;
+  });
+
+  document.getElementById('node-predicate').innerHTML =
+    '<option value="">— predicate —</option>' +
+    predicates.map(p => `<option value="${p.term}">${p.term} — ${p.english}</option>`).join('');
+
+  const nodeOptions = allNodes.map(n =>
+    `<option value="${n.id}">${truncate(n.statement, 60)}</option>`
+  ).join('');
+
+  ['edge-source','edge-target'].forEach(id => {
+    const el = document.getElementById(id);
+    el.innerHTML = '<option value="">— select node —</option>' + nodeOptions;
   });
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
-window.addEventListener('resize', () => {
-  if (graphData.nodes.length > 0) renderGraph();
+function updateTriplePreview() {
+  const s = document.getElementById('node-subject').value;
+  const p = document.getElementById('node-predicate').value;
+  const o = document.getElementById('node-object').value;
+  const preview = document.getElementById('triple-preview');
+  if (s || p || o) {
+    const pred = vocab.predicates?.find(x => x.term === p);
+    const pText = pred ? pred.english : (p || '___');
+    preview.innerHTML = `<span class="s">${(s || '___').replace(/_/g,' ')}</span> <span class="p">${pText}</span> <span class="o">${(o || '___').replace(/_/g,' ')}</span>`;
+  } else {
+    preview.innerHTML = '<span style="color:var(--text-dim)">Select subject, predicate and object below</span>';
+  }
+}
+
+// ─── SUBMIT FORMS ─────────────────────────────────────────────────────────────
+
+async function submitNode() {
+  const subject = document.getElementById('node-subject').value;
+  const predicate = document.getElementById('node-predicate').value;
+  const object = document.getElementById('node-object').value;
+  const node_type = document.getElementById('node-type').value;
+  const confidence = document.getElementById('node-confidence').value;
+  const tags = document.getElementById('node-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+
+  if (!subject || !predicate || !object) return toast('Select subject, predicate and object', 'error');
+
+  try {
+    const r = await fetch(`${API}/nodes`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ subject, predicate, object, node_type, confidence, domain_tags: tags })
+    });
+    if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
+    await r.json();
+    closeModal('add-node-modal');
+    await loadGraph();
+    populateVocabSelects();
+    renderNodeList();
+    renderDomainFilter();
+    updateStats();
+    if (focusNodeId && viewMode === 'focus') await loadView();
+    else renderGraphData(allNodes, allEdges, pinnedNodeIds, new Set());
+    toast('Node added', 'success');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function submitEdge() {
+  const source_id = document.getElementById('edge-source').value;
+  const target_id = document.getElementById('edge-target').value;
+  const relationship = document.getElementById('edge-relationship').value;
+  const warrant_text = document.getElementById('edge-warrant').value;
+  const strength = parseFloat(document.getElementById('edge-strength').value);
+
+  if (!source_id || !target_id) return toast('Select source and target nodes', 'error');
+  if (!warrant_text) return toast('Warrant is required', 'error');
+
+  try {
+    const r = await fetch(`${API}/edges`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ source_id, target_id, relationship, warrant_text, strength })
+    });
+    if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
+    closeModal('add-edge-modal');
+    await loadGraph();
+    populateVocabSelects();
+    updateStats();
+    if (focusNodeId && viewMode === 'focus') await loadView();
+    else renderGraphData(allNodes, allEdges, pinnedNodeIds, new Set());
+    toast('Edge added', 'success');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function submitVocab() {
+  if (currentVocabTab === 'entity') {
+    const term = document.getElementById('vocab-entity-term').value.trim();
+    const category = document.getElementById('vocab-entity-category').value;
+    const description = document.getElementById('vocab-entity-desc').value;
+    if (!term) return toast('Term required', 'error');
+    try {
+      const r = await fetch(`${API}/vocab/entities`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ term, category, description })
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
+      closeModal('add-vocab-modal');
+      await loadVocab();
+      toast(`Entity '${term}' added`, 'success');
+    } catch(e) { toast(e.message, 'error'); }
+  } else {
+    const term = document.getElementById('vocab-pred-term').value.trim().toUpperCase();
+    const english = document.getElementById('vocab-pred-english').value.trim();
+    const description = document.getElementById('vocab-pred-desc').value;
+    if (!term || !english) return toast('Term and english form required', 'error');
+    try {
+      const r = await fetch(`${API}/vocab/predicates`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ term, english, description })
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
+      closeModal('add-vocab-modal');
+      await loadVocab();
+      toast(`Predicate '${term}' added`, 'success');
+    } catch(e) { toast(e.message, 'error'); }
+  }
+}
+
+async function deleteNode(nodeId) {
+  if (!confirm('Delete this node?')) return;
+  await fetch(`${API}/nodes/${nodeId}`, { method: 'DELETE' });
+  closeDetail();
+  if (focusNodeId === nodeId) focusNodeId = null;
+  pinnedNodeIds.delete(nodeId);
+  await loadGraph();
+  renderNodeList();
+  renderPinnedTags();
+  renderDomainFilter();
+  updateStats();
+  renderGraphData(allNodes, allEdges, pinnedNodeIds, new Set());
+  toast('Node deleted');
+}
+
+// ─── MODAL & UI ───────────────────────────────────────────────────────────────
+
+function openModal(id) {
+  if (id === 'add-edge-modal') populateVocabSelects();
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
 });
 
-loadGraph();
+function switchVocabTab(tab) {
+  currentVocabTab = tab;
+  document.getElementById('vocab-entity-form').style.display = tab === 'entity' ? '' : 'none';
+  document.getElementById('vocab-predicate-form').style.display = tab === 'predicate' ? '' : 'none';
+  document.getElementById('vocab-tab-entity').classList.toggle('active', tab === 'entity');
+  document.getElementById('vocab-tab-predicate').classList.toggle('active', tab === 'predicate');
+}
+
+let toastTimer;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 3000);
+}
+
+function nodeColor(type) {
+  return {
+    EMPIRICAL: '#4a9eff', LOGICAL: '#b47bff', VALUE: '#ff7b7b',
+    DEFINITIONAL: '#7bffb0', OBSERVED: '#ffb07b'
+  }[type] || '#888';
+}
+
+function resetZoom() {
+  svg.transition().duration(500).call(zoomBehavior.transform, d3.zoomIdentity);
+}
+function zoomIn() { svg.transition().duration(300).call(zoomBehavior.scaleBy, 1.4); }
+function zoomOut() { svg.transition().duration(300).call(zoomBehavior.scaleBy, 0.7); }
+
+window.addEventListener('resize', () => {
+  if (simulation) {
+    const c = document.getElementById('graph-container');
+    simulation.force('center', d3.forceCenter(c.clientWidth/2, c.clientHeight/2));
+    simulation.alpha(0.1).restart();
+  }
+});
+
+init();
 </script>
 </body>
 </html>
