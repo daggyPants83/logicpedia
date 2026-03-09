@@ -112,7 +112,7 @@ def init_db():
             target_id TEXT NOT NULL REFERENCES nodes(id),
             relationship TEXT NOT NULL CHECK(relationship IN (
                 'SUPPORTS','UNDERMINES','REQUIRES','CONTRADICTS',
-                'CAUSES','IMPLIES','CORRELATES_WITH','DEFINES','EXEMPLIFIES'
+                'CAUSES','IMPLIES','CORRELATES_WITH','DEFINES','EXEMPLIFIES','PREVENTS'
             )),
             warrant_node_id TEXT,
             warrant_text TEXT,
@@ -695,7 +695,7 @@ def create_edge(data: EdgeCreate):
     if not data.warrant_node_id and not data.warrant_text:
         raise HTTPException(422, "Edge requires warrant_node_id or warrant_text")
     valid_rels = ["SUPPORTS","UNDERMINES","REQUIRES","CONTRADICTS","CAUSES","IMPLIES",
-                  "CORRELATES_WITH","DEFINES","EXEMPLIFIES"]
+                  "CORRELATES_WITH","DEFINES","EXEMPLIFIES","PREVENTS"]
     if data.relationship not in valid_rels:
         raise HTTPException(422, f"relationship must be one of {valid_rels}")
     eid = new_id()
@@ -931,7 +931,7 @@ def llm_context():
         "vocabulary": {"entities": entities, "predicates": predicates},
         "node_types": ["EMPIRICAL","LOGICAL","VALUE","DEFINITIONAL","OBSERVED"],
         "confidence_levels": ["ESTABLISHED","SUPPORTED","CONTESTED","SPECULATIVE","REFUTED"],
-        "edge_relationships": ["SUPPORTS","UNDERMINES","REQUIRES","CONTRADICTS","CAUSES","IMPLIES","CORRELATES_WITH","DEFINES","EXEMPLIFIES"],
+        "edge_relationships": ["SUPPORTS","UNDERMINES","REQUIRES","CONTRADICTS","CAUSES","IMPLIES","CORRELATES_WITH","DEFINES","EXEMPLIFIES","PREVENTS"],
         "instructions": {
             "orient": "Call GET /llm/context first to see all vocabulary",
             "add_node": "POST /nodes — {subject, predicate, object, node_type, confidence, domain_tags}. All terms must exist in vocab.",
