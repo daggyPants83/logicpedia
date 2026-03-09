@@ -6,640 +6,474 @@
 <title>Logicpedia</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400&display=swap');
 
-  :root {
-    --bg: #0a0a0f;
-    --surface: #111118;
-    --surface2: #1a1a24;
-    --border: #2a2a3a;
-    --text: #d4d4e8;
-    --text-dim: #6b6b8a;
-    --accent: #7b7bff;
-    --accent2: #ff7b7b;
-    --accent3: #7bffb0;
-    --gold: #ffd97b;
-    --focus-color: #7b7bff;
-    --pin-color: #ffd97b;
-    --path-color: #7bffb0;
+:root {
+  --bg: #08090d;
+  --surface: #0e1018;
+  --surface2: #161923;
+  --border: #232840;
+  --text: #c8cde8;
+  --dim: #525870;
+  --accent: #4d7fff;
+  --green: #3dffa0;
+  --red: #ff4d6a;
+  --amber: #ffb84d;
+  --purple: #b04dff;
+  --cyan: #4ddfff;
 
-    --node-empirical: #4a9eff;
-    --node-logical: #b47bff;
-    --node-value: #ff7b7b;
-    --node-definitional: #7bffb0;
-    --node-observed: #ffb07b;
-  }
+  --emp: #4d7fff;
+  --log: #b04dff;
+  --val: #ff4d6a;
+  --def: #3dffa0;
+  --obs: #ffb84d;
+}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
 
-  body {
-    font-family: 'IBM Plex Sans', monospace;
-    background: var(--bg);
-    color: var(--text);
-    height: 100vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
+body {
+  font-family: 'DM Mono', monospace;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+}
 
-  /* ── HEADER ── */
-  #header {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 10px 20px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    flex-shrink: 0;
-    z-index: 100;
-  }
+/* ── HEADER ── */
+#header {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 44px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+  padding: 0 16px;
+  gap: 12px;
+}
 
-  #logo {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 15px;
-    font-weight: 500;
-    letter-spacing: 0.15em;
-    color: var(--accent);
-    text-transform: uppercase;
-  }
+#logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-right: 8px;
+}
 
-  #header-stats {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    color: var(--text-dim);
-    margin-left: 8px;
-  }
+#stats {
+  font-size: 10px;
+  color: var(--dim);
+  letter-spacing: 0.06em;
+}
 
-  .header-spacer { flex: 1; }
+.spacer { flex: 1; }
 
-  .header-btn {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    padding: 5px 12px;
-    cursor: pointer;
-    transition: all 0.15s;
-    letter-spacing: 0.05em;
-  }
-  .header-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .header-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(123,123,255,0.1); }
+/* view tabs */
+#view-tabs {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+}
 
-  /* ── LAYOUT ── */
-  #main {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-  }
+.vtab {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--dim);
+  border-right: 1px solid var(--border);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.vtab:last-child { border-right: none; }
+.vtab:hover { color: var(--text); background: var(--surface2); }
+.vtab.active { color: var(--bg); background: var(--accent); }
 
-  /* ── LEFT PANEL ── */
-  #left-panel {
-    width: 300px;
-    flex-shrink: 0;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
+.hbtn {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--dim);
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.hbtn:hover { border-color: var(--accent); color: var(--accent); }
 
-  .panel-section {
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
+/* ── BODY ── */
+#body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
 
-  .panel-header {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    padding: 10px 14px 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+/* ── LEFT PANEL ── */
+#left {
+  width: 260px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface);
+}
 
-  .panel-header span { flex: 1; }
+#search {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  padding: 9px 12px;
+  outline: none;
+  width: 100%;
+}
+#search::placeholder { color: var(--dim); }
+#search:focus { border-bottom-color: var(--accent); }
 
-  /* Search */
-  #search-input {
-    width: 100%;
-    background: var(--surface2);
-    border: none;
-    border-bottom: 1px solid var(--border);
-    color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    padding: 10px 14px;
-    outline: none;
-  }
-  #search-input::placeholder { color: var(--text-dim); }
-  #search-input:focus { border-bottom-color: var(--accent); }
+.p-head {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+  padding: 8px 12px 6px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 
-  /* Node list */
-  #node-list {
-    flex: 1;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-  }
+#domain-pills {
+  padding: 7px 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  border-bottom: 1px solid var(--border);
+}
 
-  .node-item {
-    padding: 9px 14px;
-    cursor: pointer;
-    border-bottom: 1px solid rgba(255,255,255,0.03);
-    transition: background 0.1s;
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  .node-item:hover { background: var(--surface2); }
-  .node-item.selected { background: rgba(123,123,255,0.1); border-left: 2px solid var(--accent); }
+.pill {
+  font-size: 9px;
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  color: var(--dim);
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.pill.on { border-color: var(--accent); color: var(--accent); background: rgba(77,127,255,0.1); }
 
-  .node-type-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    margin-top: 5px;
-    flex-shrink: 0;
-  }
+#node-list { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
 
-  .node-statement {
-    font-size: 11px;
-    line-height: 1.4;
-    color: var(--text);
-  }
+.nitem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.nitem:hover { background: var(--surface2); }
+.nitem.sel { background: rgba(77,127,255,0.12); border-left: 2px solid var(--accent); padding-left: 10px; }
 
-  .node-meta {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px;
-    color: var(--text-dim);
-    margin-top: 2px;
-  }
+.ndot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
 
-  .node-actions {
-    display: flex;
-    gap: 4px;
-    margin-left: auto;
-    flex-shrink: 0;
-    opacity: 0;
-    transition: opacity 0.1s;
-  }
-  .node-item:hover .node-actions { opacity: 1; }
+.ntext { font-size: 10px; line-height: 1.4; flex: 1; min-width: 0; }
+.nmeta { font-size: 8px; color: var(--dim); margin-top: 1px; }
 
-  .icon-btn {
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    cursor: pointer;
-    font-size: 10px;
-    color: var(--text-dim);
-    transition: all 0.1s;
-  }
-  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .icon-btn.pin-active { border-color: var(--gold); color: var(--gold); background: rgba(255,217,123,0.1); }
+.nbtns { display: flex; gap: 2px; opacity: 0; transition: opacity 0.1s; }
+.nitem:hover .nbtns { opacity: 1; }
+.nibtn {
+  width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px;
+  border: 1px solid var(--border);
+  color: var(--dim);
+  cursor: pointer;
+  transition: all 0.1s;
+  background: transparent;
+}
+.nibtn:hover { border-color: var(--accent); color: var(--accent); }
+.nibtn.on { border-color: var(--amber); color: var(--amber); }
 
-  /* Pinned nodes */
-  #pinned-section { padding: 8px 14px; }
-  .pinned-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(255,217,123,0.1);
-    border: 1px solid rgba(255,217,123,0.3);
-    color: var(--gold);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px;
-    padding: 3px 7px;
-    margin: 2px;
-    cursor: pointer;
-  }
-  .pinned-tag:hover { background: rgba(255,217,123,0.2); }
+/* ── MAIN CANVAS ── */
+#canvas {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
 
-  /* Domain filter */
-  #domain-filter {
-    padding: 8px 14px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-  .domain-tag {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px;
-    padding: 3px 7px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    cursor: pointer;
-    color: var(--text-dim);
-    transition: all 0.1s;
-  }
-  .domain-tag.active { border-color: var(--accent); color: var(--accent); background: rgba(123,123,255,0.1); }
+#canvas svg { width: 100%; height: 100%; }
 
-  /* ── GRAPH CANVAS ── */
-  #graph-container {
-    flex: 1;
-    position: relative;
-    overflow: hidden;
-  }
+/* ── VIEW OVERLAYS ── */
+.view { position: absolute; inset: 0; display: none; }
+.view.active { display: block; }
 
-  #graph-svg {
-    width: 100%;
-    height: 100%;
-  }
+/* Focus banner */
+#focus-label {
+  position: absolute;
+  top: 10px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(77,127,255,0.15);
+  border: 1px solid rgba(77,127,255,0.35);
+  font-size: 10px;
+  color: var(--accent);
+  padding: 4px 12px;
+  pointer-events: none;
+  max-width: 480px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: none;
+}
 
-  .graph-node circle {
-    cursor: pointer;
-    transition: r 0.2s, stroke-width 0.2s;
-  }
-  .graph-node:hover circle { stroke-width: 2.5; }
+/* Legend */
+.legend {
+  position: absolute;
+  bottom: 48px; right: 12px;
+  background: rgba(8,9,13,0.9);
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  font-size: 9px;
+  pointer-events: none;
+}
+.leg-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; color: var(--dim); }
+.leg-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.leg-line { width: 16px; height: 2px; flex-shrink: 0; }
 
-  .graph-node.focus circle { stroke-width: 3; }
-  .graph-node.pinned circle { stroke: var(--pin-color) !important; stroke-width: 2.5; }
-  .graph-node.path-node circle { stroke: var(--path-color) !important; stroke-width: 2; }
+/* Graph controls */
+#graph-ctrl {
+  position: absolute;
+  bottom: 12px; right: 12px;
+  display: flex; gap: 3px;
+}
+.gctrl {
+  width: 28px; height: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--dim);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.1s;
+}
+.gctrl:hover { border-color: var(--accent); color: var(--accent); }
 
-  .node-label {
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 9px;
-    fill: var(--text);
-    pointer-events: none;
-    text-anchor: middle;
-  }
+/* Depth */
+#depth-ctrl {
+  position: absolute;
+  bottom: 12px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 5px 12px;
+  font-size: 10px; color: var(--dim);
+}
+input[type=range] {
+  -webkit-appearance: none;
+  width: 70px; height: 2px;
+  background: var(--border); outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px; height: 10px;
+  background: var(--accent); cursor: pointer;
+}
 
-  .graph-link {
-    stroke-opacity: 0.5;
-    transition: stroke-opacity 0.2s;
-  }
-  .graph-link:hover { stroke-opacity: 1; }
+/* ── DETAIL PANEL ── */
+#detail {
+  width: 320px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateX(320px);
+  transition: transform 0.2s ease;
+}
+#detail.open { transform: translateX(0); }
 
-  .link-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 7px;
-    fill: var(--text-dim);
-    pointer-events: none;
-  }
+#detail-inner { flex: 1; overflow-y: auto; padding: 14px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
 
-  /* Focus indicator */
-  #focus-banner {
-    position: absolute;
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(123,123,255,0.15);
-    border: 1px solid rgba(123,123,255,0.4);
-    padding: 5px 14px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    color: var(--accent);
-    pointer-events: none;
-    display: none;
-    max-width: 500px;
-    text-align: center;
-  }
+.d-stmt {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border-left: 3px solid var(--accent);
+  margin-bottom: 10px;
+}
 
-  /* Controls overlay */
-  #graph-controls {
-    position: absolute;
-    bottom: 16px;
-    right: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
+.d-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 12px; }
+.badge {
+  font-size: 8px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  color: var(--dim);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.badge.ESTABLISHED { border-color: var(--green); color: var(--green); }
+.badge.SUPPORTED { border-color: var(--accent); color: var(--accent); }
+.badge.CONTESTED { border-color: var(--amber); color: var(--amber); }
+.badge.SPECULATIVE { border-color: var(--red); color: var(--red); }
+.badge.REFUTED { border-color: #ff2222; color: #ff2222; }
 
-  .ctrl-btn {
-    width: 32px;
-    height: 32px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    font-size: 14px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.1s;
-    font-family: 'IBM Plex Mono', monospace;
-  }
-  .ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
+.d-sec {
+  font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--dim);
+  margin: 12px 0 6px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
 
-  /* Depth slider */
-  #depth-control {
-    position: absolute;
-    bottom: 16px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    padding: 6px 14px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    color: var(--text-dim);
-  }
+.d-edge {
+  padding: 6px 8px;
+  background: var(--surface2);
+  margin-bottom: 3px;
+  font-size: 9px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: border-color 0.1s;
+}
+.d-edge:hover { border-left-color: var(--accent); }
 
-  #depth-slider {
-    -webkit-appearance: none;
-    width: 80px;
-    height: 2px;
-    background: var(--border);
-    outline: none;
-  }
-  #depth-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 12px;
-    height: 12px;
-    background: var(--accent);
-    cursor: pointer;
-  }
+.d-rel { font-size: 8px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 2px; }
+.d-warrant { font-size: 8px; color: var(--dim); font-style: italic; margin-top: 2px; }
 
-  /* Legend */
-  #legend {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    background: rgba(10,10,15,0.85);
-    border: 1px solid var(--border);
-    padding: 10px 12px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px;
-  }
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    margin-bottom: 5px;
-    color: var(--text-dim);
-  }
-  .legend-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
+.d-actions { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.dact {
+  font-size: 9px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--dim);
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.dact:hover { border-color: var(--accent); color: var(--accent); }
+.dact.danger:hover { border-color: var(--red); color: var(--red); }
 
-  /* ── RIGHT PANEL (detail) ── */
-  #detail-panel {
-    width: 340px;
-    flex-shrink: 0;
-    background: var(--surface);
-    border-left: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    transform: translateX(340px);
-    transition: transform 0.25s ease;
-  }
-  #detail-panel.open { transform: translateX(0); }
+/* ── MODALS ── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s;
+}
+.overlay.open { opacity: 1; pointer-events: all; }
 
-  #detail-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 16px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-  }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  width: 480px; max-width: 95vw;
+  max-height: 85vh; overflow-y: auto;
+  padding: 22px;
+}
 
-  .detail-statement {
-    font-size: 13px;
-    line-height: 1.6;
-    color: var(--text);
-    margin-bottom: 12px;
-    padding: 10px 12px;
-    background: var(--surface2);
-    border-left: 3px solid var(--accent);
-  }
+.m-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 18px;
+}
 
-  .detail-triple {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 12px;
-    flex-wrap: wrap;
-  }
+.f-row { margin-bottom: 12px; }
+.f-label {
+  font-size: 8px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--dim);
+  display: block; margin-bottom: 4px;
+}
+.f-sel, .f-inp, .f-ta {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 7px 9px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.f-sel:focus, .f-inp:focus, .f-ta:focus { border-color: var(--accent); }
+.f-ta { resize: vertical; min-height: 70px; }
 
-  .triple-part {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    padding: 3px 8px;
-    border: 1px solid;
-  }
-  .triple-subject { border-color: var(--accent); color: var(--accent); }
-  .triple-predicate { border-color: var(--text-dim); color: var(--text-dim); }
-  .triple-object { border-color: var(--accent2); color: var(--accent2); }
+.triple-preview {
+  font-size: 11px;
+  padding: 9px 11px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  margin-bottom: 12px;
+  min-height: 36px;
+}
+.ts { color: var(--accent); }
+.tp { color: var(--text); }
+.to { color: var(--red); }
 
-  .detail-badges {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-  }
+.m-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+.btn-ok {
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  background: var(--accent); border: none;
+  color: #000; padding: 7px 16px; cursor: pointer;
+  font-weight: 500; transition: opacity 0.15s;
+}
+.btn-ok:hover { opacity: 0.85; }
+.btn-no {
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--dim); padding: 7px 16px; cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-no:hover { color: var(--text); }
 
-  .badge {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px;
-    padding: 3px 7px;
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-  }
+/* ── TOAST ── */
+#toast {
+  position: fixed; bottom: 20px; left: 50%;
+  transform: translateX(-50%) translateY(50px);
+  background: var(--surface2); border: 1px solid var(--border);
+  font-size: 10px; padding: 8px 16px;
+  z-index: 2000; transition: transform 0.25s ease;
+  pointer-events: none;
+}
+#toast.show { transform: translateX(-50%) translateY(0); }
+#toast.ok { border-color: var(--green); color: var(--green); }
+#toast.err { border-color: var(--red); color: var(--red); }
 
-  .badge.confidence-ESTABLISHED { border-color: var(--accent3); color: var(--accent3); }
-  .badge.confidence-SUPPORTED { border-color: var(--accent); color: var(--accent); }
-  .badge.confidence-CONTESTED { border-color: var(--gold); color: var(--gold); }
-  .badge.confidence-SPECULATIVE { border-color: var(--accent2); color: var(--accent2); }
-  .badge.confidence-REFUTED { border-color: #ff4444; color: #ff4444; }
+/* ── MATRIX specific ── */
+#matrix-wrap {
+  position: absolute; inset: 0;
+  overflow: auto;
+  padding: 12px;
+}
 
-  .detail-section-title {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    margin: 14px 0 7px;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 5px;
-  }
+/* ── SANKEY specific ── */
+.sankey-node rect { cursor: pointer; }
+.sankey-link { fill: none; opacity: 0.35; }
+.sankey-link:hover { opacity: 0.7; }
 
-  .edge-item {
-    padding: 7px 9px;
-    background: var(--surface2);
-    margin-bottom: 4px;
-    font-size: 10px;
-    cursor: pointer;
-    border-left: 2px solid transparent;
-    transition: border-color 0.1s;
-  }
-  .edge-item:hover { border-left-color: var(--accent); }
-
-  .edge-rel {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 8px;
-    color: var(--accent);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 2px;
-  }
-
-  .edge-warrant {
-    font-size: 9px;
-    color: var(--text-dim);
-    margin-top: 3px;
-    font-style: italic;
-  }
-
-  .detail-action-btn {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    padding: 6px 12px;
-    cursor: pointer;
-    transition: all 0.15s;
-    margin-right: 6px;
-    margin-top: 8px;
-  }
-  .detail-action-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .detail-action-btn.danger:hover { border-color: var(--accent2); color: var(--accent2); }
-
-  /* ── MODALS ── */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s;
-  }
-  .modal-overlay.open { opacity: 1; pointer-events: all; }
-
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    width: 500px;
-    max-width: 95vw;
-    max-height: 85vh;
-    overflow-y: auto;
-    padding: 24px;
-  }
-
-  .modal-title {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 20px;
-  }
-
-  .form-row {
-    margin-bottom: 14px;
-  }
-
-  .form-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    margin-bottom: 5px;
-    display: block;
-  }
-
-  .form-select, .form-input, .form-textarea {
-    width: 100%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    padding: 8px 10px;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  .form-select:focus, .form-input:focus, .form-textarea:focus { border-color: var(--accent); }
-  .form-textarea { resize: vertical; min-height: 80px; }
-
-  .triple-preview {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    color: var(--text-dim);
-    padding: 10px 12px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    margin-bottom: 14px;
-    min-height: 38px;
-  }
-  .triple-preview span.s { color: var(--accent); }
-  .triple-preview span.p { color: var(--text); }
-  .triple-preview span.o { color: var(--accent2); }
-
-  .modal-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 20px;
-    justify-content: flex-end;
-  }
-
-  .btn-primary {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    background: var(--accent);
-    border: none;
-    color: #000;
-    padding: 8px 18px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: opacity 0.15s;
-  }
-  .btn-primary:hover { opacity: 0.85; }
-
-  .btn-cancel {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    padding: 8px 18px;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .btn-cancel:hover { border-color: var(--text-dim); color: var(--text); }
-
-  /* Toast */
-  #toast {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%) translateY(60px);
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    padding: 9px 18px;
-    z-index: 2000;
-    transition: transform 0.25s ease;
-    pointer-events: none;
-  }
-  #toast.show { transform: translateX(-50%) translateY(0); }
-  #toast.success { border-color: var(--accent3); color: var(--accent3); }
-  #toast.error { border-color: var(--accent2); color: var(--accent2); }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); }
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); }
 </style>
 </head>
 <body>
@@ -647,115 +481,142 @@
 <!-- HEADER -->
 <div id="header">
   <div id="logo">Logicpedia</div>
-  <div id="header-stats">— — —</div>
-  <div class="header-spacer"></div>
-  <button class="header-btn" onclick="openModal('add-node-modal')">+ Node</button>
-  <button class="header-btn" onclick="openModal('add-edge-modal')">+ Edge</button>
-  <button class="header-btn" onclick="openModal('add-vocab-modal')">+ Vocab</button>
-  <button class="header-btn active" id="view-toggle" onclick="toggleViewMode()">Focus View</button>
-  <a href="/docs" target="_blank" class="header-btn" style="text-decoration:none">API Docs ↗</a>
+  <div id="stats">— — —</div>
+  <div class="spacer"></div>
+  <div id="view-tabs">
+    <button class="vtab active" onclick="setView('force')">Force</button>
+    <button class="vtab" onclick="setView('radial')">Radial</button>
+    <button class="vtab" onclick="setView('sankey')">Flow</button>
+    <button class="vtab" onclick="setView('matrix')">Matrix</button>
+  </div>
+  <button class="hbtn" onclick="openModal('node-modal')">+ Node</button>
+  <button class="hbtn" onclick="openModal('edge-modal')">+ Edge</button>
+  <button class="hbtn" onclick="openModal('vocab-modal')">+ Vocab</button>
+  <a href="/docs" target="_blank" class="hbtn" style="text-decoration:none">API ↗</a>
 </div>
 
-<!-- MAIN -->
-<div id="main">
+<!-- BODY -->
+<div id="body">
 
-  <!-- LEFT PANEL -->
-  <div id="left-panel">
-    <input id="search-input" type="text" placeholder="search nodes..." oninput="filterNodes()">
-
-    <div class="panel-section">
-      <div class="panel-header"><span>Pinned</span></div>
-      <div id="pinned-section">
-        <div id="pinned-tags" style="font-size:10px;color:var(--text-dim);padding:2px 0;">none pinned</div>
-      </div>
+  <!-- LEFT -->
+  <div id="left">
+    <input id="search" type="text" placeholder="search nodes…" oninput="filterList()">
+    <div class="p-head"><span>Domains</span></div>
+    <div id="domain-pills"></div>
+    <div class="p-head">
+      <span>Nodes</span>
+      <span id="ncount" style="color:var(--dim)"></span>
     </div>
-
-    <div class="panel-section">
-      <div class="panel-header"><span>Domain</span></div>
-      <div id="domain-filter"></div>
-    </div>
-
-    <div class="panel-header"><span>Nodes</span> <span id="node-count" style="color:var(--text-dim)"></span></div>
     <div id="node-list"></div>
   </div>
 
-  <!-- GRAPH -->
-  <div id="graph-container">
-    <svg id="graph-svg"></svg>
-    <div id="focus-banner"></div>
+  <!-- CANVAS -->
+  <div id="canvas">
 
-    <div id="legend">
-      <div class="legend-item"><div class="legend-dot" style="background:var(--node-empirical)"></div>empirical</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--node-logical)"></div>logical</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--node-value)"></div>value</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--node-definitional)"></div>definitional</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--node-observed)"></div>observed</div>
-      <div style="border-top:1px solid var(--border);margin:6px 0;"></div>
-      <div class="legend-item"><div class="legend-dot" style="background:transparent;border:2px solid var(--focus-color)"></div>focus</div>
-      <div class="legend-item"><div class="legend-dot" style="background:transparent;border:2px solid var(--pin-color)"></div>pinned</div>
-      <div class="legend-item"><div class="legend-dot" style="background:transparent;border:2px solid var(--path-color)"></div>path</div>
+    <!-- VIEW: FORCE -->
+    <div id="view-force" class="view active">
+      <svg id="svg-force"></svg>
+      <div id="focus-label"></div>
+      <div class="legend" id="leg-force">
+        <div class="leg-row"><div class="leg-dot" style="background:var(--emp)"></div>empirical</div>
+        <div class="leg-row"><div class="leg-dot" style="background:var(--log)"></div>logical</div>
+        <div class="leg-row"><div class="leg-dot" style="background:var(--val)"></div>value</div>
+        <div class="leg-row"><div class="leg-dot" style="background:var(--def)"></div>definitional</div>
+        <div class="leg-row"><div class="leg-dot" style="background:var(--obs)"></div>observed</div>
+        <div style="border-top:1px solid var(--border);margin:5px 0"></div>
+        <div class="leg-row"><div class="leg-dot" style="border:2px solid var(--accent);background:transparent"></div>focus</div>
+        <div class="leg-row"><div class="leg-dot" style="border:2px solid var(--amber);background:transparent"></div>pinned</div>
+        <div class="leg-row"><div class="leg-dot" style="border:2px solid var(--green);background:transparent"></div>path</div>
+      </div>
+      <div id="graph-ctrl">
+        <button class="gctrl" onclick="resetZoom()">⌖</button>
+        <button class="gctrl" onclick="zoomIn()">+</button>
+        <button class="gctrl" onclick="zoomOut()">−</button>
+      </div>
+      <div id="depth-ctrl">
+        <span>depth</span>
+        <input type="range" id="depth-slider" min="1" max="5" value="2" oninput="onDepth(this.value)">
+        <span id="depth-val">2</span>
+      </div>
     </div>
 
-    <div id="graph-controls">
-      <button class="ctrl-btn" onclick="resetZoom()">⌖</button>
-      <button class="ctrl-btn" onclick="zoomIn()">+</button>
-      <button class="ctrl-btn" onclick="zoomOut()">−</button>
+    <!-- VIEW: RADIAL -->
+    <div id="view-radial" class="view">
+      <svg id="svg-radial"></svg>
+      <div class="legend" id="leg-radial">
+        <div class="leg-row"><div class="leg-dot" style="background:var(--emp)"></div>empirical</div>
+        <div class="leg-row"><div class="leg-dot" style="background:var(--log)"></div>logical</div>
+        <div class="leg-row"><div class="leg-dot" style="background:var(--val)"></div>value</div>
+        <div class="leg-row"><div class="leg-dot" style="background:var(--def)"></div>definitional</div>
+        <div class="leg-row"><div class="leg-dot" style="background:var(--obs)"></div>observed</div>
+        <div style="border-top:1px solid var(--border);margin:5px 0"></div>
+        <div style="font-size:8px;color:var(--dim)">Click any node to<br>re-centre the tree</div>
+      </div>
     </div>
 
-    <div id="depth-control">
-      <span>depth</span>
-      <input type="range" id="depth-slider" min="1" max="5" value="2" oninput="onDepthChange(this.value)">
-      <span id="depth-value">2</span>
+    <!-- VIEW: SANKEY/FLOW -->
+    <div id="view-sankey" class="view">
+      <svg id="svg-sankey"></svg>
+      <div class="legend" id="leg-sankey">
+        <div class="leg-row"><div class="leg-line" style="background:var(--green)"></div>supports</div>
+        <div class="leg-row"><div class="leg-line" style="background:var(--red)"></div>undermines</div>
+        <div class="leg-row"><div class="leg-line" style="background:var(--amber)"></div>causes</div>
+        <div class="leg-row"><div class="leg-line" style="background:var(--purple)"></div>implies</div>
+        <div class="leg-row"><div class="leg-line" style="background:var(--cyan)"></div>requires</div>
+        <div class="leg-row"><div class="leg-line" style="background:var(--dim)"></div>other</div>
+      </div>
     </div>
+
+    <!-- VIEW: MATRIX -->
+    <div id="view-matrix" class="view">
+      <div id="matrix-wrap"></div>
+      <div class="legend" style="position:absolute;bottom:12px;right:12px;pointer-events:none">
+        <div style="font-size:8px;color:var(--dim);margin-bottom:4px">RELATIONSHIP</div>
+        <div class="leg-row"><div class="leg-dot" style="background:var(--green)"></div>supports</div>
+        <div class="leg-row"><div class="leg-dot" style="background:var(--red)"></div>undermines/contradicts</div>
+        <div class="leg-row"><div class="leg-dot" style="background:var(--amber)"></div>causes</div>
+        <div class="leg-row"><div class="leg-dot" style="background:var(--purple)"></div>implies/requires</div>
+        <div class="leg-row"><div class="leg-dot" style="background:var(--cyan)"></div>other</div>
+      </div>
+    </div>
+
   </div>
 
-  <!-- RIGHT DETAIL PANEL -->
-  <div id="detail-panel">
-    <div style="display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0">
-      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim)">Node Detail</span>
-      <div class="header-spacer"></div>
-      <button class="icon-btn" onclick="closeDetail()">✕</button>
+  <!-- DETAIL -->
+  <div id="detail">
+    <div style="display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <span style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim)">Node Detail</span>
+      <div class="spacer"></div>
+      <button class="nibtn" onclick="closeDetail()">✕</button>
     </div>
-    <div id="detail-content"></div>
+    <div id="detail-inner"></div>
   </div>
 </div>
 
 <!-- ADD NODE MODAL -->
-<div id="add-node-modal" class="modal-overlay">
+<div id="node-modal" class="overlay">
   <div class="modal">
-    <div class="modal-title">Add Node — Structured Triple</div>
-
-    <div class="triple-preview" id="triple-preview">
-      <span style="color:var(--text-dim)">Select subject, predicate and object below</span>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:end;margin-bottom:14px">
+    <div class="m-title">Add Node</div>
+    <div class="triple-preview" id="triple-prev"><span style="color:var(--dim)">select subject · predicate · object</span></div>
+    <div style="display:grid;grid-template-columns:1fr 16px 1fr;gap:6px;align-items:end;margin-bottom:10px">
       <div>
-        <label class="form-label">Subject</label>
-        <select class="form-select" id="node-subject" onchange="updateTriplePreview()">
-          <option value="">— entity —</option>
-        </select>
+        <label class="f-label">Subject</label>
+        <select class="f-sel" id="n-subj" onchange="prevTriple()"><option value="">— entity —</option></select>
       </div>
-      <div style="padding-bottom:1px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;font-size:14px;text-align:center">→</div>
+      <div style="text-align:center;padding-bottom:2px;color:var(--dim);font-size:12px">→</div>
       <div>
-        <label class="form-label">Object</label>
-        <select class="form-select" id="node-object" onchange="updateTriplePreview()">
-          <option value="">— entity —</option>
-        </select>
+        <label class="f-label">Object</label>
+        <select class="f-sel" id="n-obj" onchange="prevTriple()"><option value="">— entity —</option></select>
       </div>
     </div>
-
-    <div class="form-row">
-      <label class="form-label">Predicate</label>
-      <select class="form-select" id="node-predicate" onchange="updateTriplePreview()">
-        <option value="">— predicate —</option>
-      </select>
+    <div class="f-row">
+      <label class="f-label">Predicate</label>
+      <select class="f-sel" id="n-pred" onchange="prevTriple()"><option value="">— predicate —</option></select>
     </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="form-row">
-        <label class="form-label">Type</label>
-        <select class="form-select" id="node-type">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="f-row">
+        <label class="f-label">Type</label>
+        <select class="f-sel" id="n-type">
           <option value="EMPIRICAL">Empirical</option>
           <option value="LOGICAL">Logical</option>
           <option value="VALUE">Value</option>
@@ -763,9 +624,9 @@
           <option value="OBSERVED">Observed</option>
         </select>
       </div>
-      <div class="form-row">
-        <label class="form-label">Confidence</label>
-        <select class="form-select" id="node-confidence">
+      <div class="f-row">
+        <label class="f-label">Confidence</label>
+        <select class="f-sel" id="n-conf">
           <option value="ESTABLISHED">Established</option>
           <option value="SUPPORTED" selected>Supported</option>
           <option value="CONTESTED">Contested</option>
@@ -773,116 +634,77 @@
         </select>
       </div>
     </div>
-
-    <div class="form-row">
-      <label class="form-label">Domain Tags (comma separated)</label>
-      <input class="form-input" type="text" id="node-tags" placeholder="ethics, diet, biology">
+    <div class="f-row">
+      <label class="f-label">Domain Tags (comma separated)</label>
+      <input class="f-inp" type="text" id="n-tags" placeholder="ethics, diet, biology">
     </div>
-
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal('add-node-modal')">Cancel</button>
-      <button class="btn-primary" onclick="submitNode()">Add Node</button>
+    <div class="m-actions">
+      <button class="btn-no" onclick="closeModal('node-modal')">Cancel</button>
+      <button class="btn-ok" onclick="submitNode()">Add Node</button>
     </div>
   </div>
 </div>
 
 <!-- ADD EDGE MODAL -->
-<div id="add-edge-modal" class="modal-overlay">
+<div id="edge-modal" class="overlay">
   <div class="modal">
-    <div class="modal-title">Add Edge — Warranted Connection</div>
-
-    <div class="form-row">
-      <label class="form-label">Source Node</label>
-      <select class="form-select" id="edge-source">
-        <option value="">— select source —</option>
+    <div class="m-title">Add Edge</div>
+    <div class="f-row">
+      <label class="f-label">Source Node</label>
+      <select class="f-sel" id="e-src"><option value="">— source —</option></select>
+    </div>
+    <div class="f-row">
+      <label class="f-label">Relationship</label>
+      <select class="f-sel" id="e-rel">
+        <option>SUPPORTS</option><option>UNDERMINES</option><option>CAUSES</option>
+        <option>IMPLIES</option><option>REQUIRES</option><option>CONTRADICTS</option>
+        <option>CORRELATES_WITH</option><option>PREVENTS</option><option>DEFINES</option><option>EXEMPLIFIES</option>
       </select>
     </div>
-
-    <div class="form-row">
-      <label class="form-label">Relationship</label>
-      <select class="form-select" id="edge-relationship">
-        <option value="SUPPORTS">SUPPORTS</option>
-        <option value="UNDERMINES">UNDERMINES</option>
-        <option value="CAUSES">CAUSES</option>
-        <option value="IMPLIES">IMPLIES</option>
-        <option value="REQUIRES">REQUIRES</option>
-        <option value="CONTRADICTS">CONTRADICTS</option>
-        <option value="CORRELATES_WITH">CORRELATES_WITH</option>
-        <option value="DEFINES">DEFINES</option>
-        <option value="EXEMPLIFIES">EXEMPLIFIES</option>
-      </select>
+    <div class="f-row">
+      <label class="f-label">Target Node</label>
+      <select class="f-sel" id="e-tgt"><option value="">— target —</option></select>
     </div>
-
-    <div class="form-row">
-      <label class="form-label">Target Node</label>
-      <select class="form-select" id="edge-target">
-        <option value="">— select target —</option>
-      </select>
+    <div class="f-row">
+      <label class="f-label">Warrant — why does this connection hold?</label>
+      <textarea class="f-ta" id="e-warrant" placeholder="State the logical or empirical basis…"></textarea>
     </div>
-
-    <div class="form-row">
-      <label class="form-label">Warrant — why does this connection hold?</label>
-      <textarea class="form-textarea" id="edge-warrant" placeholder="State the logical or empirical basis for this connection..."></textarea>
+    <div class="f-row">
+      <label class="f-label">Strength (0–1)</label>
+      <input class="f-inp" type="number" id="e-strength" min="0" max="1" step="0.05" value="0.7">
     </div>
-
-    <div class="form-row">
-      <label class="form-label">Strength (0–1)</label>
-      <input class="form-input" type="number" id="edge-strength" min="0" max="1" step="0.05" value="0.7">
-    </div>
-
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal('add-edge-modal')">Cancel</button>
-      <button class="btn-primary" onclick="submitEdge()">Add Edge</button>
+    <div class="m-actions">
+      <button class="btn-no" onclick="closeModal('edge-modal')">Cancel</button>
+      <button class="btn-ok" onclick="submitEdge()">Add Edge</button>
     </div>
   </div>
 </div>
 
-<!-- ADD VOCAB MODAL -->
-<div id="add-vocab-modal" class="modal-overlay">
+<!-- VOCAB MODAL -->
+<div id="vocab-modal" class="overlay">
   <div class="modal">
-    <div class="modal-title">Add Vocabulary Term</div>
-
-    <div style="display:flex;gap:8px;margin-bottom:16px">
-      <button class="header-btn active" id="vocab-tab-entity" onclick="switchVocabTab('entity')">Entity</button>
-      <button class="header-btn" id="vocab-tab-predicate" onclick="switchVocabTab('predicate')">Predicate</button>
+    <div class="m-title">Add Vocabulary</div>
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button class="hbtn active" id="vt-e" onclick="vtab('e')" style="border-color:var(--accent);color:var(--accent)">Entity</button>
+      <button class="hbtn" id="vt-p" onclick="vtab('p')">Predicate</button>
     </div>
-
-    <div id="vocab-entity-form">
-      <div class="form-row">
-        <label class="form-label">Term (use_underscores)</label>
-        <input class="form-input" type="text" id="vocab-entity-term" placeholder="e.g. social_media">
-      </div>
-      <div class="form-row">
-        <label class="form-label">Category</label>
-        <select class="form-select" id="vocab-entity-category">
-          <option>AGENT</option><option>CONCEPT</option><option>PROCESS</option>
-          <option>STATE</option><option>PROPERTY</option><option>SYSTEM</option>
+    <div id="vf-e">
+      <div class="f-row"><label class="f-label">Term (use_underscores)</label><input class="f-inp" type="text" id="ve-term" placeholder="e.g. social_media"></div>
+      <div class="f-row"><label class="f-label">Category</label>
+        <select class="f-sel" id="ve-cat">
+          <option>AGENT</option><option>CONCEPT</option><option>PROCESS</option><option>STATE</option><option>PROPERTY</option><option>SYSTEM</option>
         </select>
       </div>
-      <div class="form-row">
-        <label class="form-label">Description</label>
-        <input class="form-input" type="text" id="vocab-entity-desc" placeholder="Brief definition">
-      </div>
+      <div class="f-row"><label class="f-label">Description</label><input class="f-inp" type="text" id="ve-desc"></div>
     </div>
-
-    <div id="vocab-predicate-form" style="display:none">
-      <div class="form-row">
-        <label class="form-label">Term (UPPERCASE)</label>
-        <input class="form-input" type="text" id="vocab-pred-term" placeholder="e.g. ACCELERATES">
-      </div>
-      <div class="form-row">
-        <label class="form-label">English form (as it reads in a sentence)</label>
-        <input class="form-input" type="text" id="vocab-pred-english" placeholder="e.g. accelerates">
-      </div>
-      <div class="form-row">
-        <label class="form-label">Description</label>
-        <input class="form-input" type="text" id="vocab-pred-desc" placeholder="What this predicate means">
-      </div>
+    <div id="vf-p" style="display:none">
+      <div class="f-row"><label class="f-label">Term (UPPERCASE)</label><input class="f-inp" type="text" id="vp-term" placeholder="e.g. ACCELERATES"></div>
+      <div class="f-row"><label class="f-label">English form</label><input class="f-inp" type="text" id="vp-eng" placeholder="e.g. accelerates"></div>
+      <div class="f-row"><label class="f-label">Description</label><input class="f-inp" type="text" id="vp-desc"></div>
     </div>
-
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal('add-vocab-modal')">Cancel</button>
-      <button class="btn-primary" onclick="submitVocab()">Add Term</button>
+    <div class="m-actions">
+      <button class="btn-no" onclick="closeModal('vocab-modal')">Cancel</button>
+      <button class="btn-ok" onclick="submitVocab()">Add</button>
     </div>
   </div>
 </div>
@@ -890,609 +712,816 @@
 <div id="toast"></div>
 
 <script>
-const API = '';  // same-origin
-let allNodes = [], allEdges = [], vocab = { entities: [], predicates: [] };
-let focusNodeId = null, pinnedNodeIds = new Set(), currentDepth = 2;
-let viewMode = 'focus'; // 'focus' or 'full'
-let selectedDomain = null;
-let simulation, svg, zoomBehavior, linkGroup, nodeGroup;
-let currentVocabTab = 'entity';
+const API = '';
+let nodes = [], edges = [], vocab = { entities: [], predicates: [] };
+let focusId = null, pinned = new Set(), depth = 2;
+let currentView = 'force';
+let domainFilter = null;
+let sim, forceSvg, forceZoom, fLinkG, fNodeG;
+let vocabTab = 'e';
 
-// ─── INIT ────────────────────────────────────────────────────────────────────
+// ─── INIT ──────────────────────────────────────────────────────────────────
 
 async function init() {
-  await loadVocab();
-  await loadGraph();
-  initGraph();
-  renderNodeList();
-  renderDomainFilter();
+  await Promise.all([loadVocab(), loadGraph()]);
+  initForce();
+  renderList();
+  renderDomains();
   updateStats();
 }
 
 async function loadVocab() {
   const r = await fetch(`${API}/vocab`);
   vocab = await r.json();
-  populateVocabSelects();
+  fillVocabSelects();
 }
 
 async function loadGraph() {
   const r = await fetch(`${API}/graph`);
-  const data = await r.json();
-  allNodes = data.nodes;
-  allEdges = data.edges;
+  const d = await r.json();
+  nodes = d.nodes;
+  edges = d.edges;
 }
 
-async function loadView() {
-  if (!focusNodeId) {
-    renderGraphData(allNodes, allEdges, new Set(), new Set());
-    return;
-  }
-  const pinParam = pinnedNodeIds.size ? `&pinned=${[...pinnedNodeIds].join(',')}` : '';
-  const r = await fetch(`${API}/view?focus_id=${focusNodeId}${pinParam}&depth=${currentDepth}`);
-  const data = await r.json();
-  const pathIds = new Set(Object.values(data.paths).flat());
-  renderGraphData(data.nodes, data.edges, pinnedNodeIds, pathIds);
-  updateFocusBanner(data.nodes.find(n => n.id === focusNodeId));
+function updateStats() {
+  document.getElementById('stats').textContent = `${nodes.length} nodes · ${edges.length} edges`;
 }
 
-// ─── GRAPH ───────────────────────────────────────────────────────────────────
+// ─── VIEW SWITCHING ────────────────────────────────────────────────────────
 
-function initGraph() {
-  const container = document.getElementById('graph-container');
-  const w = container.clientWidth, h = container.clientHeight;
+function setView(v) {
+  currentView = v;
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.vtab').forEach(el => el.classList.remove('active'));
+  document.getElementById(`view-${v}`).classList.add('active');
+  document.querySelectorAll('.vtab').forEach(el => {
+    if (el.textContent.toLowerCase().trim() === v || (v === 'sankey' && el.textContent.includes('Flow'))) el.classList.add('active');
+  });
+  // match by order
+  const tabs = document.querySelectorAll('.vtab');
+  const idx = ['force','radial','sankey','matrix'].indexOf(v);
+  tabs.forEach((t,i) => t.classList.toggle('active', i === idx));
 
-  d3.select('#graph-svg').selectAll('*').remove();
-  svg = d3.select('#graph-svg');
+  if (v === 'force') { if (sim) sim.alpha(0.1).restart(); }
+  else if (v === 'radial') renderRadial();
+  else if (v === 'sankey') renderSankey();
+  else if (v === 'matrix') renderMatrix();
+}
 
-  const defs = svg.append('defs');
-  ['SUPPORTS','UNDERMINES','CAUSES','IMPLIES','REQUIRES','CONTRADICTS','CORRELATES_WITH','DEFINES','EXEMPLIFIES'].forEach(rel => {
-    defs.append('marker')
-      .attr('id', `arrow-${rel}`)
-      .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 22).attr('refY', 0)
-      .attr('markerWidth', 6).attr('markerHeight', 6)
-      .attr('orient', 'auto')
-      .append('path')
-      .attr('d', 'M0,-5L10,0L0,5')
-      .attr('fill', edgeColor(rel));
+// ─── FORCE GRAPH ──────────────────────────────────────────────────────────
+
+function ncolor(type) {
+  return { EMPIRICAL:'#4d7fff', LOGICAL:'#b04dff', VALUE:'#ff4d6a', DEFINITIONAL:'#3dffa0', OBSERVED:'#ffb84d' }[type] || '#888';
+}
+
+function ecolor(rel) {
+  return { SUPPORTS:'#3dffa0', UNDERMINES:'#ff4d6a', CONTRADICTS:'#ff4d6a',
+    CAUSES:'#ffb84d', IMPLIES:'#b04dff', REQUIRES:'#4ddfff', PREVENTS:'#ff7700',
+    CORRELATES_WITH:'#525870', DEFINES:'#3dffa0', EXEMPLIFIES:'#4d7fff' }[rel] || '#525870';
+}
+
+function initForce() {
+  const c = document.getElementById('canvas');
+  d3.select('#svg-force').selectAll('*').remove();
+  forceSvg = d3.select('#svg-force');
+
+  const defs = forceSvg.append('defs');
+  ['SUPPORTS','UNDERMINES','CAUSES','IMPLIES','REQUIRES','CONTRADICTS','CORRELATES_WITH','PREVENTS','DEFINES','EXEMPLIFIES'].forEach(rel => {
+    defs.append('marker').attr('id',`ar-${rel}`)
+      .attr('viewBox','0 -5 10 10').attr('refX',20).attr('refY',0)
+      .attr('markerWidth',5).attr('markerHeight',5).attr('orient','auto')
+      .append('path').attr('d','M0,-5L10,0L0,5').attr('fill', ecolor(rel));
   });
 
-  const g = svg.append('g').attr('id', 'zoom-group');
-  linkGroup = g.append('g').attr('id', 'links');
-  nodeGroup = g.append('g').attr('id', 'nodes');
+  const g = forceSvg.append('g').attr('id','fg');
+  fLinkG = g.append('g');
+  fNodeG = g.append('g');
 
-  zoomBehavior = d3.zoom()
-    .scaleExtent([0.1, 4])
-    .on('zoom', e => g.attr('transform', e.transform));
-  svg.call(zoomBehavior);
+  forceZoom = d3.zoom().scaleExtent([0.05,4]).on('zoom', e => g.attr('transform', e.transform));
+  forceSvg.call(forceZoom);
 
-  simulation = d3.forceSimulation()
-    .force('link', d3.forceLink().id(d => d.id).distance(120).strength(0.5))
-    .force('charge', d3.forceManyBody().strength(-300))
+  const w = c.clientWidth, h = c.clientHeight;
+  sim = d3.forceSimulation()
+    .force('link', d3.forceLink().id(d=>d.id).distance(110).strength(0.5))
+    .force('charge', d3.forceManyBody().strength(-280))
     .force('center', d3.forceCenter(w/2, h/2))
-    .force('collision', d3.forceCollide(30));
+    .force('collide', d3.forceCollide(28));
 
-  renderGraphData(allNodes, allEdges, new Set(), new Set());
+  renderForceData(nodes, edges, new Set(), new Set());
 }
 
-function nodeColor(type) {
-  return {
-    EMPIRICAL: 'var(--node-empirical)',
-    LOGICAL: 'var(--node-logical)',
-    VALUE: 'var(--node-value)',
-    DEFINITIONAL: 'var(--node-definitional)',
-    OBSERVED: 'var(--node-observed)'
-  }[type] || '#888';
-}
-
-function edgeColor(rel) {
-  return {
-    SUPPORTS: '#4a9eff',
-    UNDERMINES: '#ff4444',
-    CAUSES: '#ffb07b',
-    IMPLIES: '#b47bff',
-    REQUIRES: '#7bffb0',
-    CONTRADICTS: '#ff7b7b',
-    CORRELATES_WITH: '#888',
-    DEFINES: '#7bffb0',
-    EXEMPLIFIES: '#7b7bff'
-  }[rel] || '#666';
-}
-
-function renderGraphData(nodes, edges, pinnedSet, pathSet) {
-  if (!simulation) return;
-
-  // Preserve positions
+function renderForceData(ns, es, pinnedSet, pathSet) {
+  if (!sim) return;
   const posMap = {};
-  simulation.nodes().forEach(n => { posMap[n.id] = { x: n.x, y: n.y, vx: n.vx, vy: n.vy }; });
+  sim.nodes().forEach(n => posMap[n.id] = {x:n.x, y:n.y});
 
-  const nodeData = nodes.map(n => {
-    const prev = posMap[n.id];
-    return { ...n, x: prev?.x, y: prev?.y, vx: prev?.vx || 0, vy: prev?.vy || 0 };
-  });
-
-  const nodeMap = new Map(nodeData.map(n => [n.id, n]));
-  const linkData = edges
-    .filter(e => nodeMap.has(e.source_id) && nodeMap.has(e.target_id))
+  const nd = ns.map(n => ({ ...n, ...(posMap[n.id] || {}) }));
+  const nm = new Map(nd.map(n => [n.id, n]));
+  const ld = es.filter(e => nm.has(e.source_id) && nm.has(e.target_id))
     .map(e => ({ ...e, source: e.source_id, target: e.target_id }));
 
-  // Links
-  const links = linkGroup.selectAll('.graph-link').data(linkData, d => d.id);
+  const links = fLinkG.selectAll('line').data(ld, d=>d.id);
   links.exit().remove();
-  const linksEnter = links.enter().append('line')
-    .attr('class', 'graph-link')
-    .attr('stroke-width', d => 0.5 + d.strength)
-    .attr('marker-end', d => `url(#arrow-${d.relationship})`);
-  const allLinks = linksEnter.merge(links)
-    .attr('stroke', d => edgeColor(d.relationship));
+  const linksE = links.enter().append('line').attr('stroke-width', d => 0.4 + d.strength * 0.8);
+  linksE.merge(links)
+    .attr('stroke', d => ecolor(d.relationship))
+    .attr('stroke-opacity', 0.5)
+    .attr('marker-end', d => `url(#ar-${d.relationship})`);
 
-  // Nodes
-  const nodesSel = nodeGroup.selectAll('.graph-node').data(nodeData, d => d.id);
+  const nodesSel = fNodeG.selectAll('.fn').data(nd, d=>d.id);
   nodesSel.exit().remove();
-  const nodesEnter = nodesSel.enter().append('g').attr('class', 'graph-node');
-
-  nodesEnter.append('circle')
-    .attr('r', d => focusNodeId === d.id ? 14 : 10)
+  const nodesE = nodesSel.enter().append('g').attr('class','fn');
+  nodesE.append('circle')
     .call(d3.drag()
-      .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
-      .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
-      .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; })
+      .on('start', (e,d) => { if(!e.active) sim.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; })
+      .on('drag',  (e,d) => { d.fx=e.x; d.fy=e.y; })
+      .on('end',   (e,d) => { if(!e.active) sim.alphaTarget(0); d.fx=null; d.fy=null; })
     )
-    .on('click', (e, d) => { e.stopPropagation(); onNodeClick(d); });
+    .on('click', (e,d) => { e.stopPropagation(); onNodeClick(d.id); });
+  nodesE.append('text')
+    .attr('dy', 20)
+    .style('font-family','DM Mono,monospace')
+    .style('font-size','8px')
+    .style('fill','var(--text)')
+    .style('pointer-events','none')
+    .style('text-anchor','middle');
 
-  nodesEnter.append('text').attr('class', 'node-label').attr('dy', 22);
-
-  const allNodes = nodesEnter.merge(nodesSel);
-
-  allNodes.select('circle')
-    .attr('fill', d => nodeColor(d.node_type))
+  const all = nodesE.merge(nodesSel);
+  all.select('circle')
+    .attr('r', d => d.id === focusId ? 13 : 9)
+    .attr('fill', d => ncolor(d.node_type))
     .attr('fill-opacity', 0.8)
     .attr('stroke', d => {
-      if (d.id === focusNodeId) return 'var(--focus-color)';
-      if (pinnedSet.has(d.id)) return 'var(--pin-color)';
-      if (pathSet.has(d.id)) return 'var(--path-color)';
-      return 'rgba(255,255,255,0.15)';
+      if (d.id === focusId) return 'var(--accent)';
+      if (pinnedSet.has(d.id)) return 'var(--amber)';
+      if (pathSet.has(d.id)) return 'var(--green)';
+      return 'rgba(255,255,255,0.1)';
     })
-    .attr('stroke-width', d => (d.id === focusNodeId || pinnedSet.has(d.id)) ? 2.5 : 1)
-    .attr('r', d => d.id === focusNodeId ? 14 : 10);
+    .attr('stroke-width', d => (d.id === focusId || pinnedSet.has(d.id)) ? 2.5 : 1);
+  all.select('text').text(d => trunc(d.statement, 26));
 
-  allNodes.select('text').text(d => truncate(d.statement, 28));
-
-  allNodes
-    .classed('focus', d => d.id === focusNodeId)
-    .classed('pinned', d => pinnedSet.has(d.id))
-    .classed('path-node', d => pathSet.has(d.id));
-
-  simulation.nodes(nodeData).on('tick', () => {
-    allLinks
-      .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
-      .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
-    allNodes.attr('transform', d => `translate(${d.x},${d.y})`);
+  sim.nodes(nd).on('tick', () => {
+    fLinkG.selectAll('line')
+      .attr('x1',d=>d.source.x).attr('y1',d=>d.source.y)
+      .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    all.attr('transform', d => `translate(${d.x},${d.y})`);
   });
-  simulation.force('link').links(linkData);
-  simulation.alpha(0.3).restart();
+  sim.force('link').links(ld);
+  sim.alpha(0.3).restart();
 }
 
-function truncate(s, n) {
-  return s && s.length > n ? s.slice(0, n) + '…' : s;
+async function loadFocusView() {
+  if (!focusId) { renderForceData(nodes, edges, pinned, new Set()); return; }
+  const pp = pinned.size ? `&pinned=${[...pinned].join(',')}` : '';
+  const r = await fetch(`${API}/view?focus_id=${focusId}${pp}&depth=${depth}`);
+  const d = await r.json();
+  const pathSet = new Set(Object.values(d.paths).flat());
+  renderForceData(d.nodes, d.edges, pinned, pathSet);
+  const fn = d.nodes.find(n => n.id === focusId);
+  const lb = document.getElementById('focus-label');
+  if (fn) { lb.textContent = `⦿ ${fn.statement}`; lb.style.display = 'block'; }
+  else lb.style.display = 'none';
 }
 
-// ─── INTERACTIONS ─────────────────────────────────────────────────────────────
+function resetZoom() { forceSvg.transition().duration(400).call(forceZoom.transform, d3.zoomIdentity); }
+function zoomIn()    { forceSvg.transition().duration(250).call(forceZoom.scaleBy, 1.4); }
+function zoomOut()   { forceSvg.transition().duration(250).call(forceZoom.scaleBy, 0.7); }
 
-async function onNodeClick(d) {
-  await showDetail(d.id);
-  if (viewMode === 'focus') {
-    focusNodeId = d.id;
-    await loadView();
-    highlightListItem(d.id);
+function onDepth(v) {
+  document.getElementById('depth-val').textContent = v;
+  depth = parseInt(v);
+  if (focusId && currentView === 'force') loadFocusView();
+}
+
+// ─── RADIAL TREE ──────────────────────────────────────────────────────────
+
+function renderRadial(centreId) {
+  const root = centreId || focusId || (nodes[0] && nodes[0].id);
+  if (!root) return;
+
+  d3.select('#svg-radial').selectAll('*').remove();
+  const svg = d3.select('#svg-radial');
+  const c = document.getElementById('canvas');
+  const W = c.clientWidth, H = c.clientHeight;
+  const cx = W / 2, cy = H / 2;
+  const maxR = Math.min(W, H) * 0.44;
+
+  // BFS to assign rings
+  const nm = new Map(nodes.map(n => [n.id, n]));
+  const adj = new Map();
+  edges.forEach(e => {
+    if (!adj.has(e.source_id)) adj.set(e.source_id, []);
+    if (!adj.has(e.target_id)) adj.set(e.target_id, []);
+    adj.get(e.source_id).push({ id: e.target_id, rel: e.relationship, dir: 'out' });
+    adj.get(e.target_id).push({ id: e.source_id, rel: e.relationship, dir: 'in' });
+  });
+
+  const ringMap = new Map();
+  const visited = new Set([root]);
+  let frontier = [root];
+  ringMap.set(root, 0);
+  const maxRings = 4;
+  for (let r = 1; r <= maxRings && frontier.length; r++) {
+    const next = [];
+    frontier.forEach(nid => {
+      (adj.get(nid) || []).forEach(({ id }) => {
+        if (!visited.has(id)) { visited.add(id); ringMap.set(id, r); next.push(id); }
+      });
+    });
+    frontier = next;
+  }
+
+  // Group by ring
+  const rings = new Map();
+  ringMap.forEach((r, id) => { if (!rings.has(r)) rings.set(r, []); rings.get(r).push(id); });
+
+  // Positions
+  const pos = new Map();
+  rings.forEach((ids, r) => {
+    const radius = r === 0 ? 0 : (maxR * r / maxRings);
+    ids.forEach((id, i) => {
+      const angle = (2 * Math.PI * i / ids.length) - Math.PI / 2;
+      pos.set(id, { x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle), r });
+    });
+  });
+
+  const g = svg.append('g');
+  const zoom = d3.zoom().scaleExtent([0.2,3]).on('zoom', e => g.attr('transform', e.transform));
+  svg.call(zoom);
+
+  // Ring circles (guide lines)
+  for (let r = 1; r <= maxRings; r++) {
+    g.append('circle')
+      .attr('cx', cx).attr('cy', cy)
+      .attr('r', maxR * r / maxRings)
+      .attr('fill', 'none')
+      .attr('stroke', 'var(--border)')
+      .attr('stroke-width', 0.5)
+      .attr('stroke-dasharray', '3,4');
+  }
+
+  // Edges
+  edges.forEach(e => {
+    const s = pos.get(e.source_id), t = pos.get(e.target_id);
+    if (!s || !t) return;
+    // curved line toward centre for edges crossing rings
+    g.append('path')
+      .attr('d', `M${s.x},${s.y} Q${cx},${cy} ${t.x},${t.y}`)
+      .attr('fill', 'none')
+      .attr('stroke', ecolor(e.relationship))
+      .attr('stroke-opacity', 0.3)
+      .attr('stroke-width', 0.5 + e.strength * 0.7);
+  });
+
+  // Nodes
+  pos.forEach((p, id) => {
+    const n = nm.get(id);
+    if (!n) return;
+    const isRoot = id === root;
+    const r = isRoot ? 14 : 9;
+
+    const grp = g.append('g')
+      .attr('transform', `translate(${p.x},${p.y})`)
+      .attr('cursor', 'pointer')
+      .on('click', () => { onNodeClick(id); renderRadial(id); });
+
+    grp.append('circle')
+      .attr('r', r)
+      .attr('fill', ncolor(n.node_type))
+      .attr('fill-opacity', 0.85)
+      .attr('stroke', isRoot ? 'var(--accent)' : (pinned.has(id) ? 'var(--amber)' : 'rgba(255,255,255,0.12)'))
+      .attr('stroke-width', isRoot ? 2.5 : 1);
+
+    // ring label for root
+    if (isRoot) {
+      grp.append('circle').attr('r', r + 5).attr('fill', 'none')
+        .attr('stroke', 'var(--accent)').attr('stroke-opacity', 0.3).attr('stroke-width', 1);
+    }
+
+    const label = trunc(n.statement, p.r === 0 ? 30 : 22);
+    const tx = p.x > cx ? r + 4 : -(r + 4);
+    const anchor = p.x > cx ? 'start' : 'end';
+    grp.append('text')
+      .attr('x', tx).attr('dy', '0.35em')
+      .style('font-family', 'DM Mono,monospace').style('font-size', isRoot ? '9px' : '8px')
+      .style('fill', isRoot ? 'var(--accent)' : 'var(--text)')
+      .style('pointer-events', 'none').style('text-anchor', anchor)
+      .text(label);
+  });
+
+  // Ring labels
+  const ringLabels = ['focus','1 hop','2 hops','3 hops','4 hops'];
+  for (let r = 0; r <= maxRings; r++) {
+    g.append('text')
+      .attr('x', cx + 4)
+      .attr('y', cy - (maxR * r / maxRings) - 4)
+      .style('font-family', 'DM Mono,monospace').style('font-size', '8px')
+      .style('fill', 'var(--dim)').style('pointer-events', 'none')
+      .text(ringLabels[r] || '');
+  }
+}
+
+// ─── SANKEY / FLOW ────────────────────────────────────────────────────────
+
+function renderSankey() {
+  d3.select('#svg-sankey').selectAll('*').remove();
+  const c = document.getElementById('canvas');
+  const W = c.clientWidth, H = c.clientHeight;
+  const svg = d3.select('#svg-sankey');
+  const pad = { top: 20, right: 160, bottom: 20, left: 160 };
+  const iW = W - pad.left - pad.right;
+  const iH = H - pad.top - pad.bottom;
+
+  // Compute column (x) by number of incoming edges — nodes with 0 incoming are leftmost
+  const nm = new Map(nodes.map(n => [n.id, n]));
+  const inCount = new Map(nodes.map(n => [n.id, 0]));
+  edges.forEach(e => { if (inCount.has(e.target_id)) inCount.set(e.target_id, inCount.get(e.target_id) + 1); });
+
+  // BFS to assign columns
+  const col = new Map();
+  const colNodes = new Map();
+  let frontier = nodes.filter(n => inCount.get(n.id) === 0).map(n => n.id);
+  if (!frontier.length) frontier = [nodes[0]?.id].filter(Boolean);
+  frontier.forEach(id => col.set(id, 0));
+  const visited = new Set(frontier);
+  let c2 = 1;
+  while (frontier.length) {
+    const next = [];
+    frontier.forEach(id => {
+      edges.filter(e => e.source_id === id).forEach(e => {
+        if (!visited.has(e.target_id)) {
+          visited.add(e.target_id);
+          col.set(e.target_id, c2);
+          next.push(e.target_id);
+        }
+      });
+    });
+    frontier = next;
+    c2++;
+  }
+  // any unvisited get max col
+  nodes.forEach(n => { if (!col.has(n.id)) col.set(n.id, c2); });
+
+  const maxCol = Math.max(...col.values()) || 1;
+  const colW = iW / (maxCol + 1);
+  const nodeH = 22;
+  const nodePad = 6;
+
+  // group by col
+  nodes.forEach(n => {
+    const c3 = col.get(n.id);
+    if (!colNodes.has(c3)) colNodes.set(c3, []);
+    colNodes.get(c3).push(n.id);
+  });
+
+  // assign y positions within col
+  const pos = new Map();
+  colNodes.forEach((ids, c3) => {
+    const total = ids.length * (nodeH + nodePad) - nodePad;
+    const startY = (iH - total) / 2;
+    ids.forEach((id, i) => {
+      pos.set(id, {
+        x: pad.left + c3 * colW,
+        y: pad.top + startY + i * (nodeH + nodePad)
+      });
+    });
+  });
+
+  const g = svg.append('g');
+  const zoom = d3.zoom().scaleExtent([0.1, 3]).on('zoom', e => g.attr('transform', e.transform));
+  svg.call(zoom);
+
+  // Draw edges as curved paths
+  edges.forEach(e => {
+    const s = pos.get(e.source_id), t = pos.get(e.target_id);
+    if (!s || !t) return;
+    const sx = s.x + 130, sy = s.y + nodeH / 2;
+    const tx2 = t.x, ty = t.y + nodeH / 2;
+    const mx = (sx + tx2) / 2;
+    g.append('path')
+      .attr('d', `M${sx},${sy} C${mx},${sy} ${mx},${ty} ${tx2},${ty}`)
+      .attr('fill', 'none')
+      .attr('stroke', ecolor(e.relationship))
+      .attr('stroke-width', 1 + e.strength * 2)
+      .attr('stroke-opacity', 0.4)
+      .attr('class', 'sankey-link')
+      .append('title').text(`${e.relationship}\n${e.warrant_text || ''}`);
+  });
+
+  // Draw nodes
+  pos.forEach((p, id) => {
+    const n = nm.get(id);
+    if (!n) return;
+    const grp = g.append('g')
+      .attr('transform', `translate(${p.x},${p.y})`)
+      .attr('cursor', 'pointer')
+      .on('click', () => onNodeClick(id));
+
+    grp.append('rect')
+      .attr('width', 130).attr('height', nodeH)
+      .attr('fill', ncolor(n.node_type))
+      .attr('fill-opacity', 0.15)
+      .attr('stroke', id === focusId ? 'var(--accent)' : ncolor(n.node_type))
+      .attr('stroke-width', id === focusId ? 1.5 : 0.8)
+      .attr('stroke-opacity', 0.6);
+
+    grp.append('rect')
+      .attr('width', 3).attr('height', nodeH)
+      .attr('fill', ncolor(n.node_type));
+
+    grp.append('text')
+      .attr('x', 8).attr('y', nodeH / 2)
+      .attr('dy', '0.35em')
+      .style('font-family', 'DM Mono,monospace').style('font-size', '8px')
+      .style('fill', 'var(--text)').style('pointer-events', 'none')
+      .text(trunc(n.statement, 22));
+  });
+}
+
+// ─── MATRIX ──────────────────────────────────────────────────────────────
+
+function renderMatrix() {
+  const wrap = document.getElementById('matrix-wrap');
+  wrap.innerHTML = '';
+
+  // Get nodes with edges, limit to 40 for readability
+  const connectedIds = new Set();
+  edges.forEach(e => { connectedIds.add(e.source_id); connectedIds.add(e.target_id); });
+  const mNodes = nodes.filter(n => connectedIds.has(n.id)).slice(0, 40);
+  const nm = new Map(mNodes.map(n => [n.id, n]));
+
+  // Build edge map
+  const edgeMap = new Map();
+  edges.forEach(e => {
+    const key = `${e.source_id}::${e.target_id}`;
+    edgeMap.set(key, e);
+  });
+
+  const cell = 28;
+  const labelW = 160;
+  const totalW = labelW + mNodes.length * cell + 2;
+  const totalH = labelW + mNodes.length * cell + 2;
+
+  const svg = d3.create('svg')
+    .attr('width', totalW).attr('height', totalH)
+    .style('font-family', 'DM Mono,monospace').style('font-size', '8px');
+
+  const g = svg.append('g').attr('transform', `translate(${labelW},${labelW})`);
+
+  // Grid background
+  mNodes.forEach((n, i) => {
+    g.append('rect')
+      .attr('x', i * cell).attr('y', 0)
+      .attr('width', cell).attr('height', mNodes.length * cell)
+      .attr('fill', i % 2 ? 'rgba(255,255,255,0.01)' : 'none');
+    g.append('rect')
+      .attr('x', 0).attr('y', i * cell)
+      .attr('width', mNodes.length * cell).attr('height', cell)
+      .attr('fill', i % 2 ? 'rgba(255,255,255,0.01)' : 'none');
+  });
+
+  // Cells
+  mNodes.forEach((src, si) => {
+    mNodes.forEach((tgt, ti) => {
+      if (si === ti) {
+        g.append('rect').attr('x', ti*cell).attr('y', si*cell)
+          .attr('width', cell).attr('height', cell)
+          .attr('fill', 'rgba(255,255,255,0.03)');
+        return;
+      }
+      const e = edgeMap.get(`${src.id}::${tgt.id}`);
+      if (!e) return;
+      const col = { SUPPORTS:'#3dffa0', UNDERMINES:'#ff4d6a', CONTRADICTS:'#ff4d6a',
+        CAUSES:'#ffb84d', IMPLIES:'#b04dff', REQUIRES:'#4ddfff',
+        PREVENTS:'#ff7700', CORRELATES_WITH:'#525870' }[e.relationship] || '#4d7fff';
+
+      const cell2 = g.append('g')
+        .attr('transform', `translate(${ti*cell},${si*cell})`)
+        .attr('cursor', 'pointer')
+        .on('click', () => onNodeClick(src.id));
+
+      cell2.append('rect')
+        .attr('width', cell - 2).attr('height', cell - 2)
+        .attr('x', 1).attr('y', 1)
+        .attr('fill', col).attr('fill-opacity', 0.25)
+        .attr('stroke', col).attr('stroke-width', 0.8).attr('stroke-opacity', 0.6);
+
+      cell2.append('text')
+        .attr('x', cell/2).attr('y', cell/2).attr('dy','0.35em')
+        .attr('text-anchor','middle').attr('font-size','6px')
+        .attr('fill', col).attr('pointer-events','none')
+        .text(e.relationship.slice(0,3));
+
+      cell2.append('title').text(`${src.statement}\n→ ${e.relationship} →\n${tgt.statement}\n\n${e.warrant_text||''}`);
+    });
+  });
+
+  // Column headers (rotated)
+  mNodes.forEach((n, i) => {
+    svg.append('text')
+      .attr('transform', `translate(${labelW + i*cell + cell/2},${labelW - 4}) rotate(-55, ${labelW + i*cell + cell/2}, ${labelW - 4})`)
+      .attr('text-anchor', 'start').attr('font-size', '8px').attr('fill', 'var(--dim)')
+      .text(trunc(n.statement, 18));
+  });
+
+  // Row labels
+  mNodes.forEach((n, i) => {
+    const lbl = svg.append('text')
+      .attr('x', labelW - 6)
+      .attr('y', labelW + i*cell + cell/2)
+      .attr('dy', '0.35em')
+      .attr('text-anchor', 'end')
+      .attr('font-size', '8px')
+      .attr('fill', n.id === focusId ? 'var(--accent)' : 'var(--dim)')
+      .attr('cursor', 'pointer')
+      .on('click', () => onNodeClick(n.id))
+      .text(trunc(n.statement, 20));
+  });
+
+  // Type indicator strip
+  mNodes.forEach((n, i) => {
+    g.append('rect').attr('x', -4).attr('y', i*cell + 2)
+      .attr('width', 3).attr('height', cell - 4)
+      .attr('fill', ncolor(n.node_type));
+    g.append('rect').attr('x', i*cell + 2).attr('y', -4)
+      .attr('width', cell - 4).attr('height', 3)
+      .attr('fill', ncolor(n.node_type));
+  });
+
+  // Border
+  g.append('rect')
+    .attr('width', mNodes.length * cell).attr('height', mNodes.length * cell)
+    .attr('fill', 'none').attr('stroke', 'var(--border)').attr('stroke-width', 1);
+
+  wrap.appendChild(svg.node());
+}
+
+// ─── NODE CLICK / DETAIL ──────────────────────────────────────────────────
+
+async function onNodeClick(id) {
+  await showDetail(id);
+  if (currentView === 'force') {
+    focusId = id;
+    renderList();
+    await loadFocusView();
+    document.getElementById('focus-label').style.display = 'block';
   }
 }
 
 async function showDetail(nodeId) {
   const r = await fetch(`${API}/nodes/${nodeId}`);
-  const node = await r.json();
-  renderDetail(node);
-  document.getElementById('detail-panel').classList.add('open');
+  const n = await r.json();
+  renderDetail(n);
+  document.getElementById('detail').classList.add('open');
 }
 
-function renderDetail(node) {
-  const tags = Array.isArray(node.domain_tags) ? node.domain_tags : JSON.parse(node.domain_tags || '[]');
-  const out = [];
-  out.push(`<div class="detail-statement">${node.statement}</div>`);
-  out.push(`<div class="detail-badges">
-    <span class="badge confidence-${node.confidence}">${node.confidence}</span>
-    <span class="badge">${node.node_type}</span>
-    ${tags.map(t => `<span class="badge">${t}</span>`).join('')}
-  </div>`);
+function renderDetail(n) {
+  const tags = Array.isArray(n.domain_tags) ? n.domain_tags : JSON.parse(n.domain_tags||'[]');
+  const ip = pinned.has(n.id);
+  let h = `<div class="d-stmt">${n.statement}</div>`;
+  h += `<div class="d-badges">
+    <span class="badge ${n.confidence}">${n.confidence}</span>
+    <span class="badge">${n.node_type}</span>
+    ${tags.map(t=>`<span class="badge">${t}</span>`).join('')}
+  </div>`;
+  h += `<div class="d-actions">
+    <button class="dact" onclick="setFocus('${n.id}')">⦿ Focus</button>
+    <button class="dact ${ip?'on':''}" onclick="togglePin('${n.id}')">${ip?'★ Pinned':'☆ Pin'}</button>
+    <button class="dact" onclick="onNodeClick('${n.id}');setView('radial')">Radial ↗</button>
+    <button class="dact danger" onclick="delNode('${n.id}')">Delete</button>
+  </div>`;
 
-  const isPinned = pinnedNodeIds.has(node.id);
-  out.push(`<div>
-    <button class="detail-action-btn" onclick="setFocus('${node.id}')">Set Focus</button>
-    <button class="detail-action-btn ${isPinned ? 'active' : ''}" onclick="togglePin('${node.id}')">${isPinned ? '★ Pinned' : '☆ Pin'}</button>
-    <button class="detail-action-btn danger" onclick="deleteNode('${node.id}')">Delete</button>
-  </div>`);
-
-  if (node.outgoing_edges?.length) {
-    out.push(`<div class="detail-section-title">Outgoing (${node.outgoing_edges.length})</div>`);
-    node.outgoing_edges.forEach(e => {
-      const target = allNodes.find(n => n.id === e.target_id);
-      out.push(`<div class="edge-item" onclick="onEdgeNodeClick('${e.target_id}')">
-        <div class="edge-rel">${e.relationship} →</div>
-        <div>${target?.statement || e.target_id}</div>
-        <div class="edge-warrant">"${e.warrant_text || ''}"</div>
-      </div>`);
+  if (n.outgoing_edges?.length) {
+    h += `<div class="d-sec">Outgoing (${n.outgoing_edges.length})</div>`;
+    n.outgoing_edges.forEach(e => {
+      const t = nodes.find(x => x.id === e.target_id);
+      h += `<div class="d-edge" onclick="onNodeClick('${e.target_id}')">
+        <div class="d-rel">${e.relationship} →</div>
+        <div>${t?.statement||e.target_id}</div>
+        <div class="d-warrant">"${e.warrant_text||''}"</div>
+      </div>`;
     });
   }
-
-  if (node.incoming_edges?.length) {
-    out.push(`<div class="detail-section-title">Incoming (${node.incoming_edges.length})</div>`);
-    node.incoming_edges.forEach(e => {
-      const source = allNodes.find(n => n.id === e.source_id);
-      out.push(`<div class="edge-item" onclick="onEdgeNodeClick('${e.source_id}')">
-        <div class="edge-rel">← ${e.relationship}</div>
-        <div>${source?.statement || e.source_id}</div>
-        <div class="edge-warrant">"${e.warrant_text || ''}"</div>
-      </div>`);
+  if (n.incoming_edges?.length) {
+    h += `<div class="d-sec">Incoming (${n.incoming_edges.length})</div>`;
+    n.incoming_edges.forEach(e => {
+      const s = nodes.find(x => x.id === e.source_id);
+      h += `<div class="d-edge" onclick="onNodeClick('${e.source_id}')">
+        <div class="d-rel">← ${e.relationship}</div>
+        <div>${s?.statement||e.source_id}</div>
+        <div class="d-warrant">"${e.warrant_text||''}"</div>
+      </div>`;
     });
   }
-
-  if (node.evidence?.length) {
-    out.push(`<div class="detail-section-title">Evidence (${node.evidence.length})</div>`);
-    node.evidence.forEach(ev => {
-      out.push(`<div class="edge-item">
-        <div class="edge-rel">${ev.source_type}</div>
-        <div>${ev.description}</div>
-        ${ev.citation ? `<div class="edge-warrant">${ev.citation}${ev.year ? ` (${ev.year})` : ''}</div>` : ''}
-      </div>`);
+  if (n.evidence?.length) {
+    h += `<div class="d-sec">Evidence (${n.evidence.length})</div>`;
+    n.evidence.forEach(ev => {
+      h += `<div class="d-edge"><div class="d-rel">${ev.source_type}</div><div>${ev.description}</div>${ev.citation?`<div class="d-warrant">${ev.citation}</div>`:''}</div>`;
     });
   }
-
-  if (node.challenges?.length) {
-    out.push(`<div class="detail-section-title">Challenges (${node.challenges.length})</div>`);
-    node.challenges.forEach(ch => {
-      out.push(`<div class="edge-item">
-        <div class="edge-rel">${ch.ground} · ${ch.status}</div>
-        <div>${ch.argument}</div>
-      </div>`);
-    });
-  }
-
-  document.getElementById('detail-content').innerHTML = out.join('');
+  document.getElementById('detail-inner').innerHTML = h;
 }
 
-async function onEdgeNodeClick(nodeId) {
-  await showDetail(nodeId);
+function closeDetail() { document.getElementById('detail').classList.remove('open'); }
+
+async function setFocus(id) {
+  focusId = id;
+  renderList();
+  if (currentView === 'force') await loadFocusView();
+  else if (currentView === 'radial') renderRadial(id);
 }
 
-async function setFocus(nodeId) {
-  focusNodeId = nodeId;
-  viewMode = 'focus';
-  document.getElementById('view-toggle').textContent = 'Focus View';
-  document.getElementById('view-toggle').classList.add('active');
-  await loadView();
-  highlightListItem(nodeId);
+function togglePin(id) {
+  pinned.has(id) ? pinned.delete(id) : pinned.add(id);
+  if (focusId && currentView === 'force') loadFocusView();
+  renderList();
 }
 
-function togglePin(nodeId) {
-  if (pinnedNodeIds.has(nodeId)) {
-    pinnedNodeIds.delete(nodeId);
-  } else {
-    pinnedNodeIds.add(nodeId);
-  }
-  renderPinnedTags();
-  if (focusNodeId) loadView();
+async function delNode(id) {
+  if (!confirm('Delete?')) return;
+  await fetch(`${API}/nodes/${id}`, { method: 'DELETE' });
+  closeDetail();
+  if (focusId === id) focusId = null;
+  pinned.delete(id);
+  await loadGraph();
+  renderList();
+  renderDomains();
+  updateStats();
+  renderForceData(nodes, edges, pinned, new Set());
+  toast('Deleted');
 }
 
-function renderPinnedTags() {
-  const container = document.getElementById('pinned-tags');
-  if (pinnedNodeIds.size === 0) {
-    container.innerHTML = '<span style="font-size:10px;color:var(--text-dim)">none pinned</span>';
-    return;
-  }
-  container.innerHTML = [...pinnedNodeIds].map(id => {
-    const node = allNodes.find(n => n.id === id);
-    const label = node ? truncate(node.statement, 24) : id;
-    return `<span class="pinned-tag" onclick="togglePin('${id}')">★ ${label} ✕</span>`;
-  }).join('');
-}
+// ─── LIST & DOMAINS ───────────────────────────────────────────────────────
 
-function onDepthChange(val) {
-  document.getElementById('depth-value').textContent = val;
-  currentDepth = parseInt(val);
-  if (focusNodeId && viewMode === 'focus') loadView();
-}
-
-async function toggleViewMode() {
-  if (viewMode === 'focus') {
-    viewMode = 'full';
-    document.getElementById('view-toggle').textContent = 'Full Graph';
-    document.getElementById('view-toggle').classList.remove('active');
-    document.getElementById('focus-banner').style.display = 'none';
-    renderGraphData(allNodes, allEdges, pinnedNodeIds, new Set());
-  } else {
-    viewMode = 'focus';
-    document.getElementById('view-toggle').textContent = 'Focus View';
-    document.getElementById('view-toggle').classList.add('active');
-    if (focusNodeId) await loadView();
-    else renderGraphData(allNodes, allEdges, pinnedNodeIds, new Set());
-  }
-}
-
-function updateFocusBanner(focusNode) {
-  const banner = document.getElementById('focus-banner');
-  if (focusNode) {
-    banner.textContent = `⦿ ${focusNode.statement}`;
-    banner.style.display = 'block';
-  } else {
-    banner.style.display = 'none';
-  }
-}
-
-function closeDetail() {
-  document.getElementById('detail-panel').classList.remove('open');
-}
-
-// ─── NODE LIST ───────────────────────────────────────────────────────────────
-
-function renderNodeList() {
-  const search = document.getElementById('search-input').value.toLowerCase();
-  const list = document.getElementById('node-list');
-  let filtered = allNodes;
-  if (search) filtered = filtered.filter(n => n.statement?.toLowerCase().includes(search));
-  if (selectedDomain) filtered = filtered.filter(n => {
-    const tags = Array.isArray(n.domain_tags) ? n.domain_tags : JSON.parse(n.domain_tags || '[]');
-    return tags.includes(selectedDomain);
+function renderList() {
+  const q = document.getElementById('search').value.toLowerCase();
+  let ns = nodes;
+  if (q) ns = ns.filter(n => n.statement?.toLowerCase().includes(q));
+  if (domainFilter) ns = ns.filter(n => {
+    const t = Array.isArray(n.domain_tags) ? n.domain_tags : JSON.parse(n.domain_tags||'[]');
+    return t.includes(domainFilter);
   });
-  document.getElementById('node-count').textContent = `${filtered.length}`;
-
-  list.innerHTML = filtered.map(n => {
-    const isPinned = pinnedNodeIds.has(n.id);
-    const isFocus = focusNodeId === n.id;
-    return `<div class="node-item ${isFocus ? 'selected' : ''}" onclick="onNodeClick({id:'${n.id}'})">
-      <div class="node-type-dot" style="background:${nodeColor(n.node_type)}"></div>
+  document.getElementById('ncount').textContent = ns.length;
+  document.getElementById('node-list').innerHTML = ns.map(n => {
+    const ip = pinned.has(n.id);
+    return `<div class="nitem ${n.id===focusId?'sel':''}" onclick="onNodeClick('${n.id}')">
+      <div class="ndot" style="background:${ncolor(n.node_type)}"></div>
       <div style="flex:1;min-width:0">
-        <div class="node-statement">${n.statement}</div>
-        <div class="node-meta">${n.confidence} · ${n.node_type}</div>
+        <div class="ntext">${n.statement}</div>
+        <div class="nmeta">${n.confidence} · ${n.node_type}</div>
       </div>
-      <div class="node-actions">
-        <div class="icon-btn ${isPinned ? 'pin-active' : ''}" onclick="event.stopPropagation();togglePin('${n.id}')" title="Pin">★</div>
-        <div class="icon-btn" onclick="event.stopPropagation();setFocus('${n.id}')" title="Focus">⦿</div>
+      <div class="nbtns">
+        <button class="nibtn ${ip?'on':''}" onclick="event.stopPropagation();togglePin('${n.id}')" title="pin">★</button>
+        <button class="nibtn" onclick="event.stopPropagation();setFocus('${n.id}')" title="focus">⦿</button>
       </div>
     </div>`;
   }).join('');
 }
 
-function filterNodes() { renderNodeList(); }
+function filterList() { renderList(); }
 
-function highlightListItem(nodeId) {
-  document.querySelectorAll('.node-item').forEach(el => el.classList.remove('selected'));
-  // re-render is easier
-  renderNodeList();
-}
-
-function renderDomainFilter() {
-  const domains = new Set();
-  allNodes.forEach(n => {
-    const tags = Array.isArray(n.domain_tags) ? n.domain_tags : JSON.parse(n.domain_tags || '[]');
-    tags.forEach(t => domains.add(t));
+function renderDomains() {
+  const ds = new Set();
+  nodes.forEach(n => {
+    const t = Array.isArray(n.domain_tags) ? n.domain_tags : JSON.parse(n.domain_tags||'[]');
+    t.forEach(x => ds.add(x));
   });
-  const container = document.getElementById('domain-filter');
-  container.innerHTML = [...domains].sort().map(d =>
-    `<span class="domain-tag ${selectedDomain === d ? 'active' : ''}" onclick="selectDomain('${d}')">${d}</span>`
+  document.getElementById('domain-pills').innerHTML = [...ds].sort().map(d =>
+    `<span class="pill ${domainFilter===d?'on':''}" onclick="selDomain('${d}')">${d}</span>`
   ).join('');
 }
 
-function selectDomain(domain) {
-  selectedDomain = selectedDomain === domain ? null : domain;
-  renderDomainFilter();
-  renderNodeList();
+function selDomain(d) {
+  domainFilter = domainFilter === d ? null : d;
+  renderDomains();
+  renderList();
 }
 
-function updateStats() {
-  document.getElementById('header-stats').textContent =
-    `${allNodes.length} nodes · ${allEdges.length} edges`;
+// ─── VOCAB ────────────────────────────────────────────────────────────────
+
+function fillVocabSelects() {
+  const ents = vocab.entities || [];
+  const preds = vocab.predicates || [];
+  const eo = '<option value="">— entity —</option>' + ents.map(e => `<option value="${e.term}">[${e.category}] ${e.term.replace(/_/g,' ')}</option>`).join('');
+  document.getElementById('n-subj').innerHTML = eo;
+  document.getElementById('n-obj').innerHTML = eo;
+  document.getElementById('n-pred').innerHTML = '<option value="">— predicate —</option>' +
+    preds.map(p => `<option value="${p.term}">${p.term} — ${p.english}</option>`).join('');
+  const no = '<option value="">— node —</option>' + nodes.map(n => `<option value="${n.id}">${trunc(n.statement,55)}</option>`).join('');
+  document.getElementById('e-src').innerHTML = no;
+  document.getElementById('e-tgt').innerHTML = no;
 }
 
-// ─── VOCAB SELECTS ────────────────────────────────────────────────────────────
-
-function populateVocabSelects() {
-  const entities = vocab.entities || [];
-  const predicates = vocab.predicates || [];
-
-  const entityOptions = entities.map(e =>
-    `<option value="${e.term}">[${e.category}] ${e.term.replace(/_/g,' ')}</option>`
-  ).join('');
-
-  ['node-subject','node-object'].forEach(id => {
-    const el = document.getElementById(id);
-    el.innerHTML = '<option value="">— entity —</option>' + entityOptions;
-  });
-
-  document.getElementById('node-predicate').innerHTML =
-    '<option value="">— predicate —</option>' +
-    predicates.map(p => `<option value="${p.term}">${p.term} — ${p.english}</option>`).join('');
-
-  const nodeOptions = allNodes.map(n =>
-    `<option value="${n.id}">${truncate(n.statement, 60)}</option>`
-  ).join('');
-
-  ['edge-source','edge-target'].forEach(id => {
-    const el = document.getElementById(id);
-    el.innerHTML = '<option value="">— select node —</option>' + nodeOptions;
-  });
-}
-
-function updateTriplePreview() {
-  const s = document.getElementById('node-subject').value;
-  const p = document.getElementById('node-predicate').value;
-  const o = document.getElementById('node-object').value;
-  const preview = document.getElementById('triple-preview');
-  if (s || p || o) {
-    const pred = vocab.predicates?.find(x => x.term === p);
-    const pText = pred ? pred.english : (p || '___');
-    preview.innerHTML = `<span class="s">${(s || '___').replace(/_/g,' ')}</span> <span class="p">${pText}</span> <span class="o">${(o || '___').replace(/_/g,' ')}</span>`;
+function prevTriple() {
+  const s = document.getElementById('n-subj').value;
+  const p = document.getElementById('n-pred').value;
+  const o = document.getElementById('n-obj').value;
+  const pr = document.getElementById('triple-prev');
+  if (s||p||o) {
+    const pe = vocab.predicates?.find(x=>x.term===p);
+    pr.innerHTML = `<span class="ts">${(s||'___').replace(/_/g,' ')}</span> <span class="tp">${pe?pe.english:(p||'___')}</span> <span class="to">${(o||'___').replace(/_/g,' ')}</span>`;
   } else {
-    preview.innerHTML = '<span style="color:var(--text-dim)">Select subject, predicate and object below</span>';
+    pr.innerHTML = `<span style="color:var(--dim)">select subject · predicate · object</span>`;
   }
 }
 
-// ─── SUBMIT FORMS ─────────────────────────────────────────────────────────────
+// ─── SUBMIT ───────────────────────────────────────────────────────────────
 
 async function submitNode() {
-  const subject = document.getElementById('node-subject').value;
-  const predicate = document.getElementById('node-predicate').value;
-  const object = document.getElementById('node-object').value;
-  const node_type = document.getElementById('node-type').value;
-  const confidence = document.getElementById('node-confidence').value;
-  const tags = document.getElementById('node-tags').value.split(',').map(t => t.trim()).filter(Boolean);
-
-  if (!subject || !predicate || !object) return toast('Select subject, predicate and object', 'error');
-
+  const subject = document.getElementById('n-subj').value;
+  const predicate = document.getElementById('n-pred').value;
+  const object = document.getElementById('n-obj').value;
+  const node_type = document.getElementById('n-type').value;
+  const confidence = document.getElementById('n-conf').value;
+  const domain_tags = document.getElementById('n-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  if (!subject||!predicate||!object) return toast('Select subject, predicate and object', 'err');
   try {
-    const r = await fetch(`${API}/nodes`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ subject, predicate, object, node_type, confidence, domain_tags: tags })
-    });
-    if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
-    await r.json();
-    closeModal('add-node-modal');
-    await loadGraph();
-    populateVocabSelects();
-    renderNodeList();
-    renderDomainFilter();
-    updateStats();
-    if (focusNodeId && viewMode === 'focus') await loadView();
-    else renderGraphData(allNodes, allEdges, pinnedNodeIds, new Set());
-    toast('Node added', 'success');
-  } catch(e) { toast(e.message, 'error'); }
+    const r = await fetch(`${API}/nodes`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({subject,predicate,object,node_type,confidence,domain_tags}) });
+    if (!r.ok) throw new Error((await r.json()).detail);
+    closeModal('node-modal');
+    await loadGraph(); fillVocabSelects(); renderList(); renderDomains(); updateStats();
+    if (currentView==='force') renderForceData(nodes,edges,pinned,new Set());
+    toast('Node added','ok');
+  } catch(e) { toast(e.message,'err'); }
 }
 
 async function submitEdge() {
-  const source_id = document.getElementById('edge-source').value;
-  const target_id = document.getElementById('edge-target').value;
-  const relationship = document.getElementById('edge-relationship').value;
-  const warrant_text = document.getElementById('edge-warrant').value;
-  const strength = parseFloat(document.getElementById('edge-strength').value);
-
-  if (!source_id || !target_id) return toast('Select source and target nodes', 'error');
-  if (!warrant_text) return toast('Warrant is required', 'error');
-
+  const source_id = document.getElementById('e-src').value;
+  const target_id = document.getElementById('e-tgt').value;
+  const relationship = document.getElementById('e-rel').value;
+  const warrant_text = document.getElementById('e-warrant').value;
+  const strength = parseFloat(document.getElementById('e-strength').value);
+  if (!source_id||!target_id) return toast('Select source and target','err');
+  if (!warrant_text) return toast('Warrant is required','err');
   try {
-    const r = await fetch(`${API}/edges`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ source_id, target_id, relationship, warrant_text, strength })
-    });
-    if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
-    closeModal('add-edge-modal');
-    await loadGraph();
-    populateVocabSelects();
-    updateStats();
-    if (focusNodeId && viewMode === 'focus') await loadView();
-    else renderGraphData(allNodes, allEdges, pinnedNodeIds, new Set());
-    toast('Edge added', 'success');
-  } catch(e) { toast(e.message, 'error'); }
+    const r = await fetch(`${API}/edges`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({source_id,target_id,relationship,warrant_text,strength}) });
+    if (!r.ok) throw new Error((await r.json()).detail);
+    closeModal('edge-modal');
+    await loadGraph(); fillVocabSelects(); updateStats();
+    if (currentView==='force') renderForceData(nodes,edges,pinned,new Set());
+    toast('Edge added','ok');
+  } catch(e) { toast(e.message,'err'); }
 }
 
 async function submitVocab() {
-  if (currentVocabTab === 'entity') {
-    const term = document.getElementById('vocab-entity-term').value.trim();
-    const category = document.getElementById('vocab-entity-category').value;
-    const description = document.getElementById('vocab-entity-desc').value;
-    if (!term) return toast('Term required', 'error');
+  if (vocabTab === 'e') {
+    const term = document.getElementById('ve-term').value.trim();
+    const category = document.getElementById('ve-cat').value;
+    const description = document.getElementById('ve-desc').value;
+    if (!term) return toast('Term required','err');
     try {
-      const r = await fetch(`${API}/vocab/entities`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ term, category, description })
-      });
-      if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
-      closeModal('add-vocab-modal');
-      await loadVocab();
-      toast(`Entity '${term}' added`, 'success');
-    } catch(e) { toast(e.message, 'error'); }
+      const r = await fetch(`${API}/vocab/entities`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({term,category,description})});
+      if (!r.ok) throw new Error((await r.json()).detail);
+      closeModal('vocab-modal'); await loadVocab(); toast(`Entity '${term}' added`,'ok');
+    } catch(e) { toast(e.message,'err'); }
   } else {
-    const term = document.getElementById('vocab-pred-term').value.trim().toUpperCase();
-    const english = document.getElementById('vocab-pred-english').value.trim();
-    const description = document.getElementById('vocab-pred-desc').value;
-    if (!term || !english) return toast('Term and english form required', 'error');
+    const term = document.getElementById('vp-term').value.trim().toUpperCase();
+    const english = document.getElementById('vp-eng').value.trim();
+    const description = document.getElementById('vp-desc').value;
+    if (!term||!english) return toast('Term and english form required','err');
     try {
-      const r = await fetch(`${API}/vocab/predicates`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ term, english, description })
-      });
-      if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
-      closeModal('add-vocab-modal');
-      await loadVocab();
-      toast(`Predicate '${term}' added`, 'success');
-    } catch(e) { toast(e.message, 'error'); }
+      const r = await fetch(`${API}/vocab/predicates`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({term,english,description})});
+      if (!r.ok) throw new Error((await r.json()).detail);
+      closeModal('vocab-modal'); await loadVocab(); toast(`Predicate '${term}' added`,'ok');
+    } catch(e) { toast(e.message,'err'); }
   }
 }
 
-async function deleteNode(nodeId) {
-  if (!confirm('Delete this node?')) return;
-  await fetch(`${API}/nodes/${nodeId}`, { method: 'DELETE' });
-  closeDetail();
-  if (focusNodeId === nodeId) focusNodeId = null;
-  pinnedNodeIds.delete(nodeId);
-  await loadGraph();
-  renderNodeList();
-  renderPinnedTags();
-  renderDomainFilter();
-  updateStats();
-  renderGraphData(allNodes, allEdges, pinnedNodeIds, new Set());
-  toast('Node deleted');
-}
-
-// ─── MODAL & UI ───────────────────────────────────────────────────────────────
+// ─── MODAL & UI ───────────────────────────────────────────────────────────
 
 function openModal(id) {
-  if (id === 'add-edge-modal') populateVocabSelects();
+  if (id==='edge-modal') fillVocabSelects();
   document.getElementById(id).classList.add('open');
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-document.querySelectorAll('.modal-overlay').forEach(el => {
-  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
-});
+document.querySelectorAll('.overlay').forEach(el => el.addEventListener('click', e => { if(e.target===el) el.classList.remove('open'); }));
 
-function switchVocabTab(tab) {
-  currentVocabTab = tab;
-  document.getElementById('vocab-entity-form').style.display = tab === 'entity' ? '' : 'none';
-  document.getElementById('vocab-predicate-form').style.display = tab === 'predicate' ? '' : 'none';
-  document.getElementById('vocab-tab-entity').classList.toggle('active', tab === 'entity');
-  document.getElementById('vocab-tab-predicate').classList.toggle('active', tab === 'predicate');
+function vtab(t) {
+  vocabTab = t;
+  document.getElementById('vf-e').style.display = t==='e' ? '' : 'none';
+  document.getElementById('vf-p').style.display = t==='p' ? '' : 'none';
+  document.getElementById('vt-e').style.cssText = t==='e' ? 'border-color:var(--accent);color:var(--accent)' : '';
+  document.getElementById('vt-p').style.cssText = t==='p' ? 'border-color:var(--accent);color:var(--accent)' : '';
 }
 
-let toastTimer;
-function toast(msg, type = '') {
+let tTimer;
+function toast(msg, type='') {
   const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = `show ${type}`;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.className = '', 3000);
+  el.textContent = msg; el.className = `show ${type}`;
+  clearTimeout(tTimer); tTimer = setTimeout(() => el.className='', 3000);
 }
 
-function nodeColor(type) {
-  return {
-    EMPIRICAL: '#4a9eff', LOGICAL: '#b47bff', VALUE: '#ff7b7b',
-    DEFINITIONAL: '#7bffb0', OBSERVED: '#ffb07b'
-  }[type] || '#888';
-}
-
-function resetZoom() {
-  svg.transition().duration(500).call(zoomBehavior.transform, d3.zoomIdentity);
-}
-function zoomIn() { svg.transition().duration(300).call(zoomBehavior.scaleBy, 1.4); }
-function zoomOut() { svg.transition().duration(300).call(zoomBehavior.scaleBy, 0.7); }
+function trunc(s, n) { return s&&s.length>n ? s.slice(0,n)+'…' : s||''; }
 
 window.addEventListener('resize', () => {
-  if (simulation) {
-    const c = document.getElementById('graph-container');
-    simulation.force('center', d3.forceCenter(c.clientWidth/2, c.clientHeight/2));
-    simulation.alpha(0.1).restart();
+  if (sim) {
+    const c = document.getElementById('canvas');
+    sim.force('center', d3.forceCenter(c.clientWidth/2, c.clientHeight/2));
+    sim.alpha(0.1).restart();
   }
+  if (currentView === 'radial') renderRadial(focusId);
+  else if (currentView === 'sankey') renderSankey();
+  else if (currentView === 'matrix') renderMatrix();
 });
 
 init();
