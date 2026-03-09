@@ -922,7 +922,17 @@ def llm_context():
                 domain_counts[tag] = domain_counts.get(tag, 0) + 1
         except Exception:
             pass
+    # Grab real node IDs for examples
+    sample_nodes = conn.execute(
+        "SELECT id, statement FROM nodes WHERE is_deleted=0 LIMIT 2"
+    ).fetchall()
+    ex_node_id_1 = sample_nodes[0]["id"] if len(sample_nodes) > 0 else "UUID-OF-NODE-1"
+    ex_node_id_2 = sample_nodes[1]["id"] if len(sample_nodes) > 1 else "UUID-OF-NODE-2"
+    ex_subj = entities[0]["term"] if entities else "pig"
+    ex_pred = predicates[0]["term"] if predicates else "HAS_PROPERTY"
+    ex_obj  = entities[1]["term"] if len(entities) > 1 else "suffering"
     conn.close()
+
     return {
         "description": "Logicpedia: a universal structured reasoning graph. Nodes are typed triples [subject][predicate][object]. All terms must come from the vocabulary.",
         "stats": {"nodes": node_count, "edges": edge_count, "open_challenges": open_challenges},
@@ -932,15 +942,103 @@ def llm_context():
         "node_types": ["EMPIRICAL","LOGICAL","VALUE","DEFINITIONAL","OBSERVED"],
         "confidence_levels": ["ESTABLISHED","SUPPORTED","CONTESTED","SPECULATIVE","REFUTED"],
         "edge_relationships": ["SUPPORTS","UNDERMINES","REQUIRES","CONTRADICTS","CAUSES","IMPLIES","CORRELATES_WITH","DEFINES","EXEMPLIFIES","PREVENTS"],
+        "source_types": ["PEER_REVIEWED","META_ANALYSIS","SYSTEMATIC_REVIEW","OBSERVATIONAL","EXPERT_CONSENSUS","LOGICAL_DERIVATION","ANECDOTAL"],
+        "challenge_grounds": ["EMPIRICAL","LOGICAL","VALUE","SCOPE","DEFINITION"],
         "instructions": {
-            "orient": "Call GET /llm/context first to see all vocabulary",
-            "add_node": "POST /nodes — {subject, predicate, object, node_type, confidence, domain_tags}. All terms must exist in vocab.",
-            "add_vocab": "POST /vocab/entities or /vocab/predicates to add new terms before using them in nodes",
-            "add_edge": "POST /edges — {source_id, target_id, relationship, warrant_text, strength}",
-            "bulk_add": "POST /llm/propose — {nodes[], edges[], evidence[], challenges[], reasoning}",
-            "search": "GET /nodes?search=term or GET /nodes?tag=domain",
-            "path": "GET /path?from_id=X&to_id=Y",
-            "view": "GET /view?focus_id=X&pinned=Y,Z&depth=2"
+            "step_1": "GET /llm/context — read vocabulary, domains, contested nodes, and examples",
+            "step_2_vocab": "If you need a new term: POST /vocab/entities {term, category, description} or POST /vocab/predicates {term, english, description}",
+            "step_3_nodes": "POST /nodes — {subject, predicate, object, node_type, confidence, domain_tags}. All three terms must exist in vocabulary.",
+            "step_4_edges": "POST /edges — {source_id, target_id, relationship, warrant_text, strength}. source_id and target_id are UUID strings from node objects.",
+            "step_5_evidence": "POST /evidence — {target_id, target_type, source_type, description, url, citation, year}",
+            "step_6_challenge": "POST /challenges — {target_id, target_type, ground, property_disputed, argument}",
+            "bulk_alternative": "POST /llm/propose — do steps 3-6 in one call. Edges still require UUID source_id/target_id.",
+            "curl_guide": "GET /llm/curl-guide — get copy-paste curl commands with real IDs pre-filled from the live graph",
+            "critical_warning": "NEVER use statement text in place of UUIDs. source_id, target_id, target_id in edges/evidence/challenges must all be UUID strings like 'a1b2c3d4-...'"
+        },
+        "examples": {
+            "add_entity_vocab": {
+                "POST /vocab/entities": {
+                    "term": "epistemic_injustice",
+                    "category": "CONCEPT",
+                    "description": "Harm done to someone in their capacity as a knower"
+                }
+            },
+            "add_predicate_vocab": {
+                "POST /vocab/predicates": {
+                    "term": "PRESUPPOSES",
+                    "english": "presupposes",
+                    "description": "Subject cannot be meaningfully asserted without assuming object"
+                }
+            },
+            "add_node": {
+                "POST /nodes": {
+                    "subject": ex_subj,
+                    "predicate": ex_pred,
+                    "object": ex_obj,
+                    "node_type": "EMPIRICAL",
+                    "confidence": "SUPPORTED",
+                    "domain_tags": ["example_domain"]
+                }
+            },
+            "add_edge": {
+                "POST /edges": {
+                    "source_id": ex_node_id_1,
+                    "target_id": ex_node_id_2,
+                    "relationship": "SUPPORTS",
+                    "warrant_text": "The source claim provides empirical grounding for the target claim",
+                    "strength": 0.8
+                },
+                "note": f"These are real node IDs from the live graph. Replace with the IDs of the nodes you want to connect."
+            },
+            "add_evidence": {
+                "POST /evidence": {
+                    "target_id": ex_node_id_1,
+                    "target_type": "NODE",
+                    "source_type": "PEER_REVIEWED",
+                    "description": "Brief description of what the source shows",
+                    "url": "https://doi.org/example",
+                    "citation": "Author et al. (2023). Journal Name, Vol(Issue).",
+                    "year": 2023
+                }
+            },
+            "add_challenge": {
+                "POST /challenges": {
+                    "target_id": ex_node_id_1,
+                    "target_type": "NODE",
+                    "ground": "EMPIRICAL",
+                    "property_disputed": "confidence",
+                    "argument": "The evidence for this claim does not establish causation, only correlation",
+                    "counter_node_id": None
+                }
+            },
+            "bulk_propose": {
+                "POST /llm/propose": {
+                    "proposed_by": "your-llm-name",
+                    "reasoning": "Explain what you are adding and why",
+                    "nodes": [
+                        {
+                            "subject": ex_subj,
+                            "predicate": ex_pred,
+                            "object": ex_obj,
+                            "node_type": "LOGICAL",
+                            "confidence": "SUPPORTED",
+                            "domain_tags": ["example"]
+                        }
+                    ],
+                    "edges": [
+                        {
+                            "source_id": ex_node_id_1,
+                            "target_id": ex_node_id_2,
+                            "relationship": "SUPPORTS",
+                            "warrant_text": "Warrant explaining the connection",
+                            "strength": 0.75
+                        }
+                    ],
+                    "evidence": [],
+                    "challenges": []
+                },
+                "critical_note": "Edges require UUID source_id/target_id — NOT statement text. Get IDs from GET /nodes or from the created.nodes array returned by this call."
+            }
         }
     }
 
@@ -1047,3 +1145,175 @@ def list_views():
     rows = conn.execute("SELECT * FROM views ORDER BY created_at DESC").fetchall()
     conn.close()
     return [row_to_dict(r) for r in rows]
+
+# ── CURL GUIDE ────────────────────────────────────────────────────────────────
+
+@app.get("/llm/curl-guide", summary="[LLM] Ready-to-run curl commands with real IDs from the live graph")
+def llm_curl_guide():
+    BASE = "https://logicpedia-production.up.railway.app"
+    conn = get_db()
+
+    entities = [row_to_dict(r) for r in conn.execute(
+        "SELECT term, category FROM vocab_entities WHERE status='ACTIVE' ORDER BY category, term"
+    ).fetchall()]
+    predicates = [row_to_dict(r) for r in conn.execute(
+        "SELECT term, english FROM vocab_predicates WHERE status='ACTIVE'"
+    ).fetchall()]
+    nodes_sample = [row_to_dict(r) for r in conn.execute(
+        "SELECT id, statement, node_type, confidence, domain_tags FROM nodes WHERE is_deleted=0 ORDER BY created_at LIMIT 20"
+    ).fetchall()]
+    for n in nodes_sample:
+        n["domain_tags"] = json.loads(n["domain_tags"])
+    contested = [row_to_dict(r) for r in conn.execute(
+        "SELECT id, statement, confidence FROM nodes WHERE confidence IN ('CONTESTED','SPECULATIVE') AND is_deleted=0 LIMIT 10"
+    ).fetchall()]
+
+    ex_subj = entities[0]["term"] if entities else "pig"
+    ex_pred = predicates[0]["term"] if predicates else "HAS_PROPERTY"
+    ex_obj  = entities[1]["term"] if len(entities) > 1 else "suffering"
+    ex_id_1 = nodes_sample[0]["id"] if nodes_sample else "REPLACE-WITH-NODE-UUID"
+    ex_id_2 = nodes_sample[1]["id"] if len(nodes_sample) > 1 else "REPLACE-WITH-NODE-UUID"
+
+    conn.close()
+
+    return {
+        "intro": (
+            "Ready-to-run curl commands pre-filled with real vocab terms and node IDs from the live graph. "
+            "Save each file_contents block to the named file, then run the curl command."
+        ),
+        "base_url": BASE,
+        "steps": {
+            "step_0_explore": {
+                "description": "Browse the graph before adding anything",
+                "commands": [
+                    f"curl '{BASE}/graph' | python3 -m json.tool | head -100",
+                    f"curl '{BASE}/nodes?tag=ethics' | python3 -m json.tool",
+                    f"curl '{BASE}/nodes?search=suffering' | python3 -m json.tool",
+                    f"curl '{BASE}/nodes?confidence=CONTESTED' | python3 -m json.tool",
+                ]
+            },
+            "step_1_add_vocab_entity": {
+                "description": "Add a new entity term BEFORE creating nodes that use it",
+                "save_to_file": "step1_vocab_entity.json",
+                "file_contents": {
+                    "term": "YOUR_TERM_HERE",
+                    "category": "CONCEPT",
+                    "description": "Your description here"
+                },
+                "valid_categories": ["AGENT","CONCEPT","PROCESS","STATE","PROPERTY","SYSTEM"],
+                "curl_command": f"curl -X POST '{BASE}/vocab/entities' -H 'Content-Type: application/json' -d @step1_vocab_entity.json",
+                "existing_entity_terms": [e["term"] for e in entities]
+            },
+            "step_2_add_vocab_predicate": {
+                "description": "Add a new predicate BEFORE creating nodes that use it",
+                "save_to_file": "step2_vocab_predicate.json",
+                "file_contents": {
+                    "term": "YOUR_PREDICATE_UPPERCASE",
+                    "english": "your predicate in english",
+                    "description": "What this predicate means"
+                },
+                "curl_command": f"curl -X POST '{BASE}/vocab/predicates' -H 'Content-Type: application/json' -d @step2_vocab_predicate.json",
+                "existing_predicate_terms": [p["term"] for p in predicates]
+            },
+            "step_3_add_node": {
+                "description": "Add a single node. All three terms must already exist in vocab.",
+                "save_to_file": "step3_node.json",
+                "file_contents": {
+                    "subject": ex_subj,
+                    "predicate": ex_pred,
+                    "object": ex_obj,
+                    "node_type": "EMPIRICAL",
+                    "confidence": "SUPPORTED",
+                    "domain_tags": ["your_domain"]
+                },
+                "curl_command": f"curl -X POST '{BASE}/nodes' -H 'Content-Type: application/json' -d @step3_node.json",
+                "note": "Response contains the new node UUID — save it for edges/evidence"
+            },
+            "step_4_add_edge": {
+                "description": "Connect two existing nodes with a warranted edge",
+                "save_to_file": "step4_edge.json",
+                "file_contents": {
+                    "source_id": ex_id_1,
+                    "target_id": ex_id_2,
+                    "relationship": "SUPPORTS",
+                    "warrant_text": "Explain why this connection holds",
+                    "strength": 0.75
+                },
+                "valid_relationships": ["SUPPORTS","UNDERMINES","CAUSES","IMPLIES","REQUIRES","CONTRADICTS","CORRELATES_WITH","PREVENTS","DEFINES","EXEMPLIFIES"],
+                "curl_command": f"curl -X POST '{BASE}/edges' -H 'Content-Type: application/json' -d @step4_edge.json",
+                "real_node_ids": [{"id": n["id"], "statement": n["statement"]} for n in nodes_sample[:8]]
+            },
+            "step_5_add_evidence": {
+                "description": "Attach a citation to an existing node",
+                "save_to_file": "step5_evidence.json",
+                "file_contents": {
+                    "target_id": ex_id_1,
+                    "target_type": "NODE",
+                    "source_type": "PEER_REVIEWED",
+                    "description": "What the source shows, in your own words",
+                    "url": "https://doi.org/...",
+                    "citation": "Author et al. (2023). Title. Journal.",
+                    "year": 2023
+                },
+                "valid_source_types": ["PEER_REVIEWED","META_ANALYSIS","SYSTEMATIC_REVIEW","OBSERVATIONAL","EXPERT_CONSENSUS","LOGICAL_DERIVATION","ANECDOTAL"],
+                "curl_command": f"curl -X POST '{BASE}/evidence' -H 'Content-Type: application/json' -d @step5_evidence.json"
+            },
+            "step_6_add_challenge": {
+                "description": "Challenge a contested node",
+                "save_to_file": "step6_challenge.json",
+                "file_contents": {
+                    "target_id": contested[0]["id"] if contested else ex_id_1,
+                    "target_type": "NODE",
+                    "ground": "EMPIRICAL",
+                    "property_disputed": "confidence",
+                    "argument": "Your challenge argument here",
+                    "counter_node_id": None
+                },
+                "valid_grounds": ["EMPIRICAL","LOGICAL","VALUE","SCOPE","DEFINITION"],
+                "curl_command": f"curl -X POST '{BASE}/challenges' -H 'Content-Type: application/json' -d @step6_challenge.json",
+                "contested_nodes": contested
+            },
+            "step_7_bulk_propose": {
+                "description": "Add nodes, edges, evidence and challenges in one call",
+                "save_to_file": "step7_bulk.json",
+                "file_contents": {
+                    "proposed_by": "your-llm-name",
+                    "reasoning": "Describe what you are adding and why",
+                    "nodes": [
+                        {
+                            "subject": ex_subj,
+                            "predicate": ex_pred,
+                            "object": ex_obj,
+                            "node_type": "LOGICAL",
+                            "confidence": "SUPPORTED",
+                            "domain_tags": ["example"]
+                        }
+                    ],
+                    "edges": [
+                        {
+                            "source_id": ex_id_1,
+                            "target_id": ex_id_2,
+                            "relationship": "SUPPORTS",
+                            "warrant_text": "Explain the connection",
+                            "strength": 0.75
+                        }
+                    ],
+                    "evidence": [],
+                    "challenges": []
+                },
+                "curl_command": f"curl -X POST '{BASE}/llm/propose' -H 'Content-Type: application/json' -d @step7_bulk.json",
+                "warnings": [
+                    "source_id/target_id in edges[] must be UUID strings, NOT statement text",
+                    "If creating nodes and edges in the same call, run nodes first, get their IDs from the response, then run a second call for edges",
+                    "All subject/predicate/object terms must exist in vocab before this call"
+                ]
+            }
+        },
+        "workflow_summary": (
+            "1. GET /llm/curl-guide (this call) to get real IDs. "
+            "2. If new vocab needed: save + POST step1/step2 files. "
+            "3. Save step3 or step7 JSON, run curl. "
+            "4. For edges after new nodes: get UUIDs from step3 response, then run step4. "
+            "5. Run steps in order — later steps depend on IDs from earlier responses."
+        )
+    }
