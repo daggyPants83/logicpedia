@@ -103,7 +103,8 @@ def init_db():
             created_by TEXT NOT NULL DEFAULT 'anonymous',
             created_at TEXT NOT NULL,
             is_deleted INTEGER NOT NULL DEFAULT 0,
-            superseded_by TEXT
+            superseded_by TEXT,
+            is_featured INTEGER NOT NULL DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS edges (
@@ -165,6 +166,12 @@ def init_db():
         );
     """)
     conn.commit()
+    # Migration: add is_featured if not present
+    try:
+        conn.execute("ALTER TABLE nodes ADD COLUMN is_featured INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
+    except Exception:
+        pass
     conn.close()
     _seed_vocab()
     _seed_graph()
@@ -332,13 +339,13 @@ def _seed_graph():
             raise ValueError(f"Predicate not found: {term}")
         return r["id"], r["english"]
 
-    def mk_node(subj, pred, obj, ntype, conf, tags, by="seed"):
+    def mk_node(subj, pred, obj, ntype, conf, tags, by="seed", featured=0):
         pid, peng = p(pred)
         statement = f"{subj} {peng} {obj}".replace("_", " ")
         nid = new_id()
         conn.execute(
-            "INSERT INTO nodes VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-            (nid, e(subj), pid, e(obj), statement, ntype, conf, json.dumps(tags), by, now(), 0, None)
+            "INSERT INTO nodes VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (nid, e(subj), pid, e(obj), statement, ntype, conf, json.dumps(tags), by, now(), 0, None, featured)
         )
         return nid
 
@@ -453,6 +460,89 @@ def _seed_graph():
     mk_edge(n_if_ghg, n_climate_ext, "CAUSES", "Farming-driven emissions accelerate climate change which drives species extinction", 0.75)
     mk_edge(n_climate_ext, n_future_eco, "UNDERMINES", "Extinction of species permanently destroys the ecosystems future generations depend on", 0.85)
     mk_edge(n_future_cli, n_diet_moral, "SUPPORTS", "Practices that harm future generations without their consent are morally problematic", 0.7)
+
+
+    # ── Domain: Foundational moral axioms (FEATURED) ─────────────────────
+    # These are the high-level nodes that ground the entire graph.
+    # Add extra vocab needed first
+    extra_entities = [
+        ("happiness", "CONCEPT", "Positive subjective experience and flourishing"),
+        ("well_being", "CONCEPT", "Overall positive state of an entity across all dimensions"),
+        ("moral_agent", "AGENT", "Any being capable of moral reasoning and responsibility"),
+        ("sentient_being", "AGENT", "Any being capable of subjective experience including pleasure and pain"),
+        ("interest", "CONCEPT", "A stake in outcomes that matters to the holder"),
+        ("equal_consideration", "CONCEPT", "The principle that equal interests deserve equal weight regardless of who holds them"),
+        ("unnecessary_suffering", "CONCEPT", "Suffering that serves no sufficiently weighty purpose"),
+        ("golden_rule", "CONCEPT", "The principle of treating others as one would wish to be treated"),
+        ("moral_circle", "CONCEPT", "The set of beings whose interests are granted moral consideration"),
+        ("flourishing", "CONCEPT", "The fullest expression of a being's capacities and positive states"),
+        ("preference", "CONCEPT", "A ranking of outcomes by a being that expresses what it wants"),
+        ("impartiality", "CONCEPT", "Judging without favouring one party based on identity rather than interests"),
+    ]
+    extra_predicates = [
+        ("DEMANDS", "demands", "FORWARD", None, None, "Subject requires or necessitates object as a moral or logical consequence"),
+        ("GROUNDS", "grounds", "FORWARD", None, None, "Subject provides the foundational basis for object"),
+        ("EXTENDS_TO", "extends to", "FORWARD", None, None, "Subject applies or reaches to include object"),
+        ("OBLIGATES", "obligates", "FORWARD", None, None, "Subject creates a duty or obligation toward object"),
+        ("DIMINISHES", "diminishes", "FORWARD", None, None, "Subject reduces or weakens object"),
+        ("DESERVES", "deserves", "FORWARD", "AGENT", None, "Subject is entitled to or merits object"),
+        ("MAXIMISES", "maximises", "FORWARD", None, None, "Subject increases object to the greatest possible degree"),
+        ("MINIMISES", "minimises", "FORWARD", None, None, "Subject reduces object to the least possible degree"),
+    ]
+    t2 = now()
+    for term, cat, desc in extra_entities:
+        existing = conn.execute("SELECT id FROM vocab_entities WHERE term=?", (term,)).fetchone()
+        if not existing:
+            conn.execute("INSERT INTO vocab_entities VALUES (?,?,?,?,?,?,?)",
+                (new_id(), term, cat, desc, 'system', 'ACTIVE', t2))
+    for term, eng, dirn, dom, rng, desc in extra_predicates:
+        existing = conn.execute("SELECT id FROM vocab_predicates WHERE term=?", (term,)).fetchone()
+        if not existing:
+            conn.execute("INSERT INTO vocab_predicates VALUES (?,?,?,?,?,?,?,?,?)",
+                (new_id(), term, eng, dirn, dom, rng, desc, 'ACTIVE', t2))
+    conn.commit()
+
+    # Now seed the featured axiom nodes
+    ax_suffering_bad   = mk_node("suffering","IS_SUFFICIENT_FOR","moral_worth","VALUE","ESTABLISHED",["ethics","moral_philosophy","axiomatic"], featured=1)
+    ax_equal_interest  = mk_node("equal_consideration","GROUNDS","moral_framework","VALUE","SUPPORTED",["ethics","moral_philosophy","axiomatic"], featured=1)
+    ax_sentient_circle = mk_node("moral_circle","EXTENDS_TO","sentient_being","VALUE","CONTESTED",["ethics","moral_philosophy","axiomatic"], featured=1)
+    ax_harm_obligates  = mk_node("unnecessary_suffering","OBLIGATES","moral_agent","VALUE","SUPPORTED",["ethics","moral_philosophy","axiomatic"], featured=1)
+    ax_flourish        = mk_node("sentient_being","DESERVES","flourishing","VALUE","SUPPORTED",["ethics","moral_philosophy","axiomatic"], featured=1)
+    ax_impartial       = mk_node("impartiality","GROUNDS","moral_framework","VALUE","SUPPORTED",["ethics","moral_philosophy","axiomatic"], featured=1)
+    ax_interest_equal  = mk_node("interest","DEMANDS","equal_consideration","VALUE","SUPPORTED",["ethics","moral_philosophy","axiomatic"], featured=1)
+    ax_welfare_max     = mk_node("well_being","IS_SUFFICIENT_FOR","moral_worth","VALUE","SUPPORTED",["ethics","moral_philosophy","axiomatic"], featured=1)
+    ax_golden          = mk_node("golden_rule","GROUNDS","moral_framework","VALUE","ESTABLISHED",["ethics","moral_philosophy","axiomatic"], featured=1)
+    ax_pref_respect    = mk_node("preference","DEMANDS","equal_consideration","VALUE","SUPPORTED",["ethics","moral_philosophy","axiomatic"], featured=1)
+    ax_consciousness   = mk_node("consciousness","IS_SUFFICIENT_FOR","moral_worth","VALUE","CONTESTED",["ethics","moral_philosophy","axiomatic"], featured=1)
+    ax_harm_bad        = mk_node("harm","VIOLATES","moral_framework","VALUE","ESTABLISHED",["ethics","moral_philosophy","axiomatic"], featured=1)
+
+    # Connect axioms to each other and to the rest of the graph
+    mk_edge(ax_suffering_bad, ax_sentient_circle, "IMPLIES",
+        "If suffering alone grounds moral worth, then all sentient beings — capable of suffering — fall within the moral circle", 0.9)
+    mk_edge(ax_equal_interest, ax_impartial, "REQUIRES",
+        "Equal consideration of interests requires the impartial standpoint — judging by what interests are at stake, not who holds them", 0.9)
+    mk_edge(ax_interest_equal, ax_equal_interest, "IMPLIES",
+        "The claim that interests demand equal consideration is just what equal consideration means", 0.95)
+    mk_edge(ax_sentient_circle, ax_harm_obligates, "IMPLIES",
+        "Once sentient beings are in the moral circle, their suffering creates obligations to avoid causing it unnecessarily", 0.9)
+    mk_edge(ax_golden, ax_impartial, "SUPPORTS",
+        "The golden rule is an early expression of impartiality — it asks us to weight others' experiences as we weight our own", 0.8)
+    mk_edge(ax_flourish, ax_welfare_max, "SUPPORTS",
+        "If beings deserve to flourish, then well-being — the metric of flourishing — has moral weight", 0.85)
+    mk_edge(ax_pref_respect, ax_equal_interest, "IMPLIES",
+        "If preferences demand equal consideration, this just is the claim that equal interests (expressed as preferences) matter equally", 0.9)
+    mk_edge(ax_consciousness, ax_suffering_bad, "SUPPORTS",
+        "Consciousness is the precondition for suffering — without it, there is no one to suffer", 0.95)
+    mk_edge(ax_harm_bad, ax_harm_obligates, "IMPLIES",
+        "If harm violates morality, then agents capable of preventing unnecessary harm are obligated to do so", 0.9)
+    mk_edge(ax_impartial, n_harm_moral, "SUPPORTS",
+        "The impartiality principle implies harm to any being deserves equal weight regardless of species", 0.8)
+    mk_edge(ax_suffering_bad, n_sent_mw, "SUPPORTS",
+        "The foundational axiom that suffering grounds moral worth directly supports the contested claim about sentient creatures", 0.9)
+    mk_edge(ax_equal_interest, n_sent_int, "IMPLIES",
+        "Equal consideration of interests implies that sentient creatures' welfare interests cannot simply be dismissed", 0.85)
+    mk_edge(ax_harm_obligates, n_ff_harm, "SUPPORTS",
+        "The obligation to avoid unnecessary suffering connects directly to factory farming as an unnecessary source of mass suffering", 0.85)
 
     conn.commit()
     conn.close()
@@ -595,6 +685,15 @@ def add_predicate(data: VocabPredicatePropose):
 
 # ── NODES ─────────────────────────────────────────────────────────────────────
 
+@app.get("/nodes/featured", summary="Featured axiom nodes for the home screen")
+def get_featured_nodes():
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT * FROM nodes WHERE is_featured=1 AND is_deleted=0 ORDER BY created_at ASC"
+    ).fetchall()
+    conn.close()
+    return [row_to_dict(r) for r in rows]
+
 @app.get("/nodes")
 def list_nodes(
     tag: Optional[str] = None,
@@ -640,10 +739,10 @@ def create_node(data: NodeCreate):
     statement = f"{data.subject} {pred['english']} {data.object}".replace("_", " ")
     nid = new_id()
     conn.execute(
-        "INSERT INTO nodes VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO nodes VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (nid, subj["id"], pred["id"], obj["id"], statement,
          data.node_type, data.confidence, json.dumps(data.domain_tags),
-         data.created_by, now(), 0, None)
+         data.created_by, now(), 0, None, 0)
     )
     conn.commit()
     row = conn.execute("SELECT * FROM nodes WHERE id=?", (nid,)).fetchone()
@@ -1064,10 +1163,10 @@ def llm_propose(data: LLMProposal):
             statement = f"{nd.subject} {pred['english']} {nd.object}".replace("_", " ")
             nid = new_id()
             conn.execute(
-                "INSERT INTO nodes VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO nodes VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (nid, subj["id"], pred["id"], obj["id"], statement,
                  nd.node_type, nd.confidence, json.dumps(nd.domain_tags),
-                 data.proposed_by, now(), 0, None)
+                 data.proposed_by, now(), 0, None, 0)
             )
             results["created"]["nodes"].append({"id": nid, "statement": statement})
             node_id_map[statement] = nid
